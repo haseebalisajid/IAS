@@ -21,11 +21,11 @@ const interviewResult=mongoose.Schema({
         type:Boolean,
         default:false
     },
-    projecetAssesment:{
+    projectAssesment:{
         type:Boolean,
         default:false
     },
-    recordedResult:{
+    recordedResult:{ 
         type:Array,
         default:[]
     },
@@ -37,10 +37,19 @@ const interviewResult=mongoose.Schema({
         type:Array,
         default:[]
     },
-    projecetRemarks:{
+    projectLink:{
+        type:String,
+        default:'',
+    },
+    projectRemarks:{
         type:String,
         default:''
+    },
+    allComplete:{
+        type:Boolean,
+        default:false
     }
 });
+
 
 module.exports = mongoose.model("interviewResult", interviewResult);

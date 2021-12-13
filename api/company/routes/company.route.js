@@ -78,7 +78,6 @@ router.get(
 //SUBSCRIPTION data
 router.get("/getSubscription",auth,role('company'),block,companyController.getSubscription);
 
-router.get("/scheduleRoom", companyController.scheduleRoom);
 //subscription webhook
 router.post( 
   "/webhook",

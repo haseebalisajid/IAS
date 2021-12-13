@@ -4,7 +4,9 @@ const questionnarie=require('../models/questionnarie.model');
 const recorded=require('../models/recorded.model');
 const result=require('../models/result.model');
 const job=require('../../job/models/job.model');
+const live=require('../models/liveInterview.model');
 const nodemailer = require("nodemailer");
+const fetch = require("cross-fetch");
 
 const transporter = nodemailer.createTransport({
   service: "Gmail",
@@ -225,9 +227,6 @@ exports.addAlgorithmQuestions=async(req,res)=>{
     }
 }
 
-// exports.randomAlgoQuestions=async(req,res)=>{
-//     const {}=req.body;
-// }
 
 exports.projectAssesment=async(req,res)=>{
     const {jobID,deadline,testName,instructions,fileLink}=req.body;
@@ -320,24 +319,263 @@ exports.startInterviews=async(req,res)=>{
     }
 }
 
-exports.getUserStates=async(req,res)=>{
-    const {jobID,userID}=req.params;
-    if(jobID,userID){
+
+exports.projectAssesmentRemarks=async(req,res)=>{
+    const {jobID,userID,remarks}=req.body;
+    if(jobID && userID){
         try{
-            const Result=await result.find({jobID:jobID,userID:userID},{recorded:true,mcq:true,algorithm:true,projecetAssesment:true});
-            res.status(200).json(Result);
+            const getResult=await result.find({jobID:jobID,userID:userID});
+            if(getResult[0].allComplete==true ){
+                if(getResult[0].projectRemarks==''){
+                    if(remarks){
+                        const addRemarks =await result.updateOne(
+                          { jobID: jobID, userID: userID },
+                          {
+                            $set: {
+                              projectRemarks: remarks,
+                            },
+                          }
+                        );
+                        res.status(200).json({'msg':'Remarks added'});
+                    }
+                    else{
+                        res.status(400).json({'msg':'Please add remarks'})
+                    }
+                }
+                else{
+                    res.status(403).json({'msg':'Remarks already submitted'})
+                }
+            }
+            else{
+                res.status(401).json({'msg':'Project not submitted yet'})
+            }
         }
         catch(err){
             console.log(err);
-            res.status(500).json({'msg':err})
+            res.status(500).json({'msg':'Opps error. we are looking into it.'})
         }
     }
     else{
-        res.status(401).json({'msg':'userID or jobID is missing'})
+        res.status(400).json({'msg':"jobID or userID is missing"});
     }
 }
 
+exports.recordedResult=async(req,res)=>{
+    const { jobID } = req.params;
+    if(jobID){
+        try{
+            const getResult=await result.find({jobID:jobID},{recordedResult:true,userID:true}).populate('userID','name');
+            res.status(200).json(getResult);
+        }
+        catch(err){
+            console.log(err);
+            res.status(500).json({'msg':'Oops Error. We are looking into it.'})
+        }
+    }   
+    else{
+        res.status(400).json({'msg':'jobID is missing'})
+    }
+}
+
+
+exports.questionnarieResult = async (req, res) => {
+  const { jobID } = req.params;
+  if (jobID) {
+    try {
+      const getResult = await result
+        .find({ jobID: jobID }, { mcqResult: true, userID: true })
+        .populate("userID", "name");
+      res.status(200).json(getResult);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ msg: "Oops Error. We are looking into it." });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};
+
+
+exports.algorithmResult = async (req, res) => {
+  const { jobID } = req.params;
+  if (jobID) {
+    try {
+      const getResult = await result
+        .find({ jobID: jobID }, { algorithmResult: true, userID: true })
+        .populate("userID", "name");
+      res.status(200).json(getResult);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ msg: "Oops Error. We are looking into it." });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};
+
+exports.projectResult = async (req, res) => {
+  const { jobID } = req.params;
+  if (jobID) {
+    try {
+      const getResult = await result
+        .find({ jobID: jobID }, { projectLink: true, userID: true })
+        .populate("userID", "name");
+      res.status(200).json(getResult);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ msg: "Oops Error. We are looking into it." });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};
+
+exports.getFinalList=async(req,res)=>{
+    const {jobID}=req.params;
+    if(jobID){
+        try{
+            const getList=await result.find({allComplete:true},{userID:true}).populate('userID','name email');
+            if(getList.length>0){
+                res.status(200).json(getList);
+            }
+            else{
+                res.status(404).json({'msg':"No Data found"});
+            }
+        }
+        catch(err){
+            res.status(500).json({'msg':'Oops Error, we are looking into it.'})
+        }
+    }
+    else{
+        res.status(400).json({'msg':'jobID is missing'});
+    }
+}
+
+//making live interview
+exports.scheduleRoom=async  (req,res)=>{
+    const{userID,jobID,startTime}=req.body;
+    if(userID && jobID){
+        if(startTime!=''){
+            try{
+                const jobDetail=await job.find({_id:jobID},{title:true});
+                let title=jobDetail[0].title;
+                title = title.replace(/ /g, "-");
+                var adminLink;
+                const response=await fetch("https://api.daily.co/v1/rooms", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${process.env.live_key}`,
+                  },
+                  body: JSON.stringify({
+                    name: `${title}-Interview`,
+                    privacy: "private",
+                    properties: {
+                      nbf: startTime,
+                      enable_screenshare: false,
+                      enable_knocking: true,
+                      enable_chat: true,
+                      start_video_off: true,
+                      start_audio_off: true,
+                    },
+                  }),
+                });
+                const data=await response.json();
+
+                const response2 = await fetch(
+                  "https://api.daily.co/v1/meeting-tokens",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${process.env.live_key}`,
+                    },
+                    body: JSON.stringify({
+                      properties: {
+                        room_name: `${data.name}`,
+                        is_owner: true,
+                      },
+                    }),
+                  }
+                );
+                const data2=await response2.json();
+                adminLink = data.url + `?t=${data2.token}`;
+
+                let liveInterview = await new live({
+                    jobID: jobID,
+                    userID: userID,
+                    adminLink: adminLink,
+                    userLink: data.url,
+                    startTime: startTime,
+                    companyID:req.USER._id
+                });
+                let liveInter = await liveInterview.save();
+                res.status(200).json(liveInter);
+            }
+            catch(err){
+                console.log(err);
+                res.status(500).json({'msg':'Oops error, we are looking into it.'})
+            }
+        }
+        else{
+            res.status(400).json({'msg':'Add start time'})
+        }
+    }
+    else{
+        res.status(400).json({'msg':'JobID or userID is missing'})
+    }
+}
+
+exports.showScheduledRooms=async(req,res)=>{
+    try {
+        const data = await live
+        .find({ companyID: req.USER._id }, { userLink: false })
+        .populate("userID", "name").populate('jobID','title');
+        if (data.length > 0) {
+        res.status(200).json(data);
+        } else {
+        res.status(404).json({ msg: "No data found" });
+        }
+    } catch (err) {
+        res.status(500).json({ msg: "Oops Error,, we are looking into it." });
+    }
+}
+
+
 //applicants controllers
+exports.showLiveRooms=async(req,res)=>{
+    try{
+        const data=await live.find({userID:req.USER._id},{adminLink:false}).populate('companyID','name').populate('jobID','title');
+        if(data.length>0){
+            res.status(200).json(data);
+        }
+        else{
+            res.status(404).json({'msg':'No data found'});
+        }
+    }
+    catch(err){
+        res.status(500).json({'msg':'Oops Error,, we are looking into it.'})
+    }
+}
+
+exports.getUserStates = async (req, res) => {
+  const { jobID, userID } = req.params;
+  if ((jobID, userID)) {
+    try {
+      const Result = await result.find(
+        { jobID: jobID, userID: userID },
+        { recorded: true, mcq: true, algorithm: true, projecetAssesment: true }
+      );
+      res.status(200).json(Result);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ msg: err });
+    }
+  } else {
+    res.status(401).json({ msg: "userID or jobID is missing" });
+  }
+};
+
 exports.submitMCQ=async(req,res)=>{
     const {jobID,totalNumber}= req.body;
     if(jobID){
@@ -374,37 +612,203 @@ exports.submitMCQ=async(req,res)=>{
     }
 }
 
-// exports.submitAlgorithm = async (req, res) => {
-//   const { jobID, resultArray } = req.body;
-//   if (jobID) {
-//     try {
-//       const checkResult = await result.find({
-//         jobID: jobID,
-//         userID: req.USER._id,
-//       });
-//       if (checkResult[0].algorithm == true && checkResult.algorithmResult.length == 0) {
-//         if (resultArray>0) {
-//           const updateResult = await result.updateOne(
-//             { jobID: jobID, userID: req.USER._id },
-//             {
-//               $set: {
-//                 mcq: algorithm,
-//                 mcqResult: totalNumber,
-//                 algorithm: true,
-//               },
-//             }
-//           );
-//           res.status(200).json({ msg: "Result Submitted" });
-//         } else {
-//           res.status(400).json({ msg: "Total Number is missing" });
-//         }
-//       } else {
-//         res.status(401).json({ msg: "cant submit right now" });
-//       }
-//     } catch (err) {
-//       res.status(500).json({ msg: err });
-//     }
-//   } else {
-//     res.status(400).json({ msg: "jobID is missing" });
-//   }
-// };
+const checker = (arr) => {
+    return arr.every((v) => v === true);
+};
+
+exports.submitAlgorithm = async (req, res) => {
+  const { jobID, resultArray } = req.body;
+  if (jobID) {
+    try {
+      const checkResult = await result.find({
+        jobID: jobID,
+        userID: req.USER._id,
+      });
+        const getSelected = await job
+        .find({ _id: jobID }, { selected: true, title: true })
+        .populate("company", "name");
+
+      const getMcq=await questionnarie.find({jobID:jobID});
+      const length=getMcq[0].questions.length;
+      const percent = Math.round((checkResult[0].mcqResult / length) * 100);
+      const check=checker(resultArray);
+          //checking user valid for this test or not
+        if (
+            checkResult[0].algorithm == true &&
+            checkResult[0].algorithmResult.length == 0
+        ) {
+            //checking user answers array
+            if(percent>60 && check == true){
+                if (resultArray.length > 0) {
+                    const updateResult = await result.updateOne(
+                        { jobID: jobID, userID: req.USER._id },
+                        {
+                        $set: {
+                            algorithm: false,
+                            algorithmResult: resultArray,
+                            projecetAssesment: true,
+                        },
+                        }
+                    );
+                    if(updateResult.nModified ==1){
+                        let htmlTemp = `<p>Dear <strong>${req.USER.name} ,</strong></p>
+                        <p>This is to inform you that you qualified for the next Interview Phase for the <strong>${getSelected[0].title}</strong> postion
+                        at <strong>${getSelected[0].company.name}</strong>.<br>
+                        Please visit your IAS dashboard to start the next interview ASAP.<br><strong>Best of Luck.</strong></P>
+                        <strong>Regards:</strong><br>
+                        <p>IAS.Offical.Team</p>`;
+                        transporter.sendMail({
+                          to: req.USER.email,
+                          subject: "Job Interview Update",
+                          html: htmlTemp,
+                        });
+                    }
+                    res.status(200).json({ msg: "Result Submitted" });
+                } else {
+                    res
+                    .status(400)
+                    .json({ msg: "Total Number is missing" });
+                }              
+            }
+            else{
+                const updateResult = await result.updateOne(
+                    { jobID: jobID, userID: req.USER._id },
+                    {
+                    $set: {
+                        algorithm: false,
+                        algorithmResult: resultArray,
+                        projecetAssesment: false,
+                    },
+                    }
+                );
+                if (updateResult.nModified == 1) {
+                    let htmlTemp = `<p>Dear <strong>${req.USER.name} ,</strong></p>
+                        <p>This is to inform you that you are not qualified for the next Interview Phase for the <strong>${getSelected[0].title}</strong> postion
+                        at <strong>${getSelected[0].company.name}</strong>.<br>
+                        Thank you for using IAS.<br><strong>Best luck next time.</strong></P>
+                        <strong>Regards:</strong><br>
+                        <p>IAS.Offical.Team</p>`;
+                    transporter.sendMail({
+                        to: req.USER.email,
+                        subject: "Job Interview Update",
+                        html: htmlTemp,
+                    });
+                }
+                res.status(200).json({ msg: "you are not qualified for the next phase. Better luck next time" });
+            }
+        } else {
+            res.status(401).json({ msg: "cant submit right now" });
+        }
+    } catch (err) {
+        console.log(err)
+      res.status(500).json({ msg: err });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};
+
+exports.submitProject=async(req,res)=>{
+    const {jobID,link}=req.body;
+    if(jobID){
+        if(link!=''){
+            try{
+                const checkResult = await result.find({
+                    jobID: jobID,
+                    userID: req.USER._id,
+                });
+                if(checkResult[0].projectAssesment == true 
+                    && checkResult[0].projectRemarks=="" 
+                    && checkResult[0].projectLink ==""
+                ){
+                    const updateResult = await result.updateOne(
+                      { jobID: jobID, userID: req.USER._id },
+                      {
+                        $set: {
+                          projectAssesment: false,
+                          projectLink: link,
+                          allComplete: true,
+                        },
+                      }
+                    );
+                    res.status(200).json({'msg':'Project Submitted'});
+                }
+                else{
+                    res.status(401).json({'msg':'cant submit right now'});
+                }
+            }
+            catch(err){
+                console.log(err);
+                res.status(500).json({'msg':'Opps error, we are looking into it'})
+            }
+        }
+        else{
+            res.status(400).json({'msg':'Project Link is missing'})
+        }
+    }
+    else{
+        res.status(400).json({'msg':'JobID is missing'})
+    }
+}
+
+exports.showRecordedInterview=async(req,res)=>{
+    const {jobID}=req.params;
+    if(jobID){
+        try{
+            const showResult=await recorded.find({jobID:jobID});
+            res.status(200).json(showResult);
+        }
+        catch(err){
+            console.log(err);
+            res.status(500).json({'msg':err})
+        }
+    }
+    else{
+        res.status(400).json({'msg':"jobID is missing"})
+    }
+}
+
+exports.showQuestionnarieInterview = async (req, res) => {
+  const { jobID } = req.params;
+  if (jobID) {
+    try {
+      const showResult = await questionnarie.find({ jobID: jobID });
+      res.status(200).json(showResult);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ msg: err });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};
+
+exports.showAlgorithmInterview = async (req, res) => {
+  const { jobID } = req.params;
+  if (jobID) {
+    try {
+      const showResult = await algorithm.find({ jobID: jobID });
+      res.status(200).json(showResult);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ msg: err });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};
+
+exports.showProjectAssesment = async (req, res) => {
+  const { jobID } = req.params;
+  if (jobID) {
+    try {
+      const showResult = await project.find({ jobID: jobID });
+      res.status(200).json(showResult);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ msg: err });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};

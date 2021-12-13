@@ -60,7 +60,7 @@ app.use("/api/applicant", applicantRoutes);
 app.use("/api/company", companyRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/admin", adminRoutes);
-app.use('/api/company/interviews',interviewRoutes)
+app.use('/api/interviews',interviewRoutes)
 
 app.get("/success", (req, res) => {
   res.send("Payment successful");

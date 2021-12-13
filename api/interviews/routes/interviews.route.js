@@ -14,15 +14,140 @@ router.post('/createAlgorithmInterview',auth,role('company'),block,interviewCont
 router.put('/addAlgorithmQuestions/:interviewID',auth,role('company'),block,interviewController.addAlgorithmQuestions);
 router.post('/createProjectAssesment',auth,role('company'),block,interviewController.projectAssesment);
 router.put('/startInterviews',auth,role('company'),block,interviewController.startInterviews);
-router.get('/getUserStates/:jobID/:userID',auth,role('company'),block,interviewController.getUserStates);
+router.put(
+  "/addProjectRemarks",
+  auth,
+  role("company"),
+  block,
+  interviewController.projectAssesmentRemarks
+);
+
+router.get(
+  "/getRecordedResult/:jobID",
+  auth,
+  role("company"),
+  block,
+  interviewController.recordedResult
+);
+
+router.get(
+  "/getQuestionnarieResult/:jobID",
+  auth,
+  role("company"),
+  block,
+  interviewController.questionnarieResult
+);
+
+router.get(
+  "/getAlgorithmResult/:jobID",
+  auth,
+  role("company"),
+  block,
+  interviewController.algorithmResult
+);
+
+router.get(
+  "/getProjectResult/:jobID",
+  auth,
+  role("company"),
+  block,
+  interviewController.projectResult
+);
+
+router.get(
+  "/getFinalList/:jobID",
+  auth,
+  role("company"),
+  block,
+  interviewController.getFinalList
+);
+
+router.post('/scheduleLiveInterview',auth,role('company'),block,interviewController.scheduleRoom);
+
+router.get(
+  "/getScheduledRooms",
+  auth,
+  role("company"),
+  block,
+  interviewController.showScheduledRooms
+);
+
+
+
 
 //applicant side routes
+
+router.get(
+  "/getLiveRooms",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.showLiveRooms
+);
+
+
+router.get(
+  "/getUserStates/:jobID/:userID",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.getUserStates
+);
+
+router.get(
+  "/getRecorded/:jobID",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.showRecordedInterview
+);
+
+router.get(
+  "/getQuestionnarie/:jobID",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.showQuestionnarieInterview
+);
+
+router.get(
+  "/getAlgorithm/:jobID",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.showAlgorithmInterview
+);
+
+router.get(
+  "/getProjectAssesment/:jobID",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.showProjectAssesment
+);
+
 router.put(
   "/submitQuestionnarie",
   auth,
   role("applicant"),
   block,
   interviewController.submitMCQ
+);
+
+router.put(
+  "/submitAlgorithm",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.submitAlgorithm
+);
+
+router.put(
+  "/submitProject",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.submitProject
 );
 
 module.exports=router;

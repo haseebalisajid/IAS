@@ -5,6 +5,7 @@ const recorded=require('../models/recorded.model');
 const result=require('../models/result.model');
 const job=require('../../job/models/job.model');
 const live=require('../models/liveInterview.model');
+const video=require('../models/videoCall.model');
 const nodemailer = require("nodemailer");
 const fetch = require("cross-fetch");
 
@@ -451,7 +452,7 @@ exports.getFinalList=async(req,res)=>{
     }
 }
 
-//making live interview
+//scheduling live interview
 exports.scheduleRoom=async  (req,res)=>{
     const{userID,jobID,startTime}=req.body;
     if(userID && jobID){
@@ -542,7 +543,7 @@ exports.showScheduledRooms=async(req,res)=>{
 }
 
 
-//applicants controllers
+//applicants controllers for interviews
 exports.showLiveRooms=async(req,res)=>{
     try{
         const data=await live.find({userID:req.USER._id},{adminLink:false}).populate('companyID','name').populate('jobID','title');
@@ -812,3 +813,46 @@ exports.showProjectAssesment = async (req, res) => {
     res.status(400).json({ msg: "jobID is missing" });
   }
 };
+
+exports.pingVideoCall=async(req,res)=>{
+    const {jobID,problemStatement}=req.body;
+    if(jobID){
+        if(problemStatement){
+            try{
+                const checkResult=await video.find({jobID:jobID,userID:req.USER._id});
+                const checkInterview=await result.find({jobID:jobID,userID:req.USER._id});
+                if(checkInterview.length>0 && checkInterview[0].projectAssesment == true){
+                    if (checkResult.length == 0) {
+                        const videoCall = await new video({
+                        jobID,
+                        problemStatement,
+                        userID: req.USER._id,
+                        });
+                        const saveData = await videoCall.save();
+                        res.status(200).json({
+                        response: saveData,
+                        msg: "Successfuly pinged company HR",
+                        });
+                    } else {
+                        res
+                        .status(401)
+                        .json({ msg: "already pinged" });
+                    }
+                }
+                else{
+                    res.status(401).json({'msg':'cant ping right now'});
+                }
+            }
+            catch(err){
+                console.log(err);
+                res.status(500).json({'msg':"Oops Error, we are looking into it."})
+            }
+        }
+        else{
+            res.status(400).json({'msg':'Problem statement is missing'});
+        }
+    }
+    else{
+        res.status(400).json({'msg':"jobID is missing."});
+    }
+}

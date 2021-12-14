@@ -150,4 +150,12 @@ router.put(
   interviewController.submitProject
 );
 
+router.post(
+  "/pingCompany",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.pingVideoCall
+);
+
 module.exports=router;

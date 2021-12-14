@@ -11,6 +11,13 @@ router.post('/createRecordedInterview',auth,role('company'),block,interviewContr
 router.post('/createQuestionnarie',auth,role('company'),block,interviewController.questionnarieInterview);
 router.put('/addQuestions/:interviewID',auth,role('company'),block,interviewController.addQuestionnarie);
 router.post('/createAlgorithmInterview',auth,role('company'),block,interviewController.algorithmInterview);
+router.post(
+  "/randomAlgorithm",
+  auth,
+  role("company"),
+  block,
+  interviewController.setRandomAlogrithm
+);
 router.put('/addAlgorithmQuestions/:interviewID',auth,role('company'),block,interviewController.addAlgorithmQuestions);
 router.post('/createProjectAssesment',auth,role('company'),block,interviewController.projectAssesment);
 router.put('/startInterviews',auth,role('company'),block,interviewController.startInterviews);

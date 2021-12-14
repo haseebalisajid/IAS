@@ -6,6 +6,7 @@ const result=require('../models/result.model');
 const job=require('../../job/models/job.model');
 const live=require('../models/liveInterview.model');
 const video=require('../models/videoCall.model');
+const algoDat=require('../models/algoData');
 const nodemailer = require("nodemailer");
 const fetch = require("cross-fetch");
 
@@ -17,6 +18,8 @@ const transporter = nodemailer.createTransport({
   },
   from: process.env.EMAIL_USERNAME,
 });
+
+
 
 exports.recordedInterview=async(req,res)=>{
     const { jobID, totalTime, testName, deadline, questions } = req.body;
@@ -186,6 +189,57 @@ exports.algorithmInterview=async(req,res)=>{
 
 }
 
+const randomNumber=(len)=>{
+    let arr = [];
+    while (arr.length < len) {
+      let r = Math.floor(Math.random() * 8) + 1;
+      if (arr.indexOf(r) === -1) arr.push(r);
+    }
+    return arr;
+}
+
+exports.setRandomAlogrithm=async(req,res)=>{
+    const {jobID,totalQuestions,testName,totalTime,deadline}=req.body;
+    var questions=[];
+    if(jobID){
+        if(totalQuestions<=5){
+            let num=randomNumber(totalQuestions);
+            let i=0;
+            while(i<totalQuestions){
+                let objVal = algoDat.algo[num[i]];
+                questions.push(objVal)
+                i++;
+            }
+            try{
+                const checkInterview=await algorithm.find({jobID:jobID});
+                if(checkInterview.length==0 ){
+                    let algoInterview=await new algorithm({
+                        jobID,
+                        testName,
+                        totalTime,
+                        deadline,
+                        questions
+                    });
+                    let saveData=await algoInterview.save();
+                    res.json({'response':saveData,'msg':'Interview Created'});
+                }
+                else{
+                    res.status(401).json({'msg':'Already setup Algorithm Interview'})
+                }
+            }
+            catch(err){
+                res.status(500).json({'msg':'Oops'})
+            }
+
+        }
+        else{
+            res.status(401).json({'msg':'max length is 5'})
+        }
+    }
+    else{
+        res.status(400).json({'msg':'jobID is missing'});
+    }
+}
 
 exports.addAlgorithmQuestions=async(req,res)=>{
     const {questions} =req.body;
@@ -413,6 +467,7 @@ exports.algorithmResult = async (req, res) => {
     res.status(400).json({ msg: "jobID is missing" });
   }
 };
+
 
 exports.projectResult = async (req, res) => {
   const { jobID } = req.params;
@@ -676,6 +731,7 @@ exports.setResponse=async(req,res)=>{
     }
 }
 
+//-------------------------------//
 //applicants controllers for interviews
 exports.showLiveRooms=async(req,res)=>{
     try{

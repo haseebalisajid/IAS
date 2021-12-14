@@ -542,6 +542,139 @@ exports.showScheduledRooms=async(req,res)=>{
     }
 }
 
+exports.showVideoRequests=async(req,res)=>{
+    try{
+        const data=await video.find({companyID:req.USER._id});
+        if(data.length>0){
+            res.status(200).json(data);
+        }
+        else{
+            res.status(404).json({'msg':"No data found"})
+        }
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({'msg':"Oops error. We are looking into it."});
+    }
+}
+
+exports.setVideoCall=async(req,res)=>{
+    const {ID,startTime}=req.body;
+    if(ID){
+        if(startTime){
+            try{
+                const getData=await video.find({_id:ID});
+                if(getData[0].adminLink=='' &&  getData[0].userLink==''){
+                    let num=Math.floor(Math.random() * 50)+1;;
+                    var adminLink;
+                    const response=await fetch("https://api.daily.co/v1/rooms", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${process.env.live_key}`,
+                    },
+                    body: JSON.stringify({
+                        name: `VideoCall-${num}`,
+                        privacy: "private",
+                        properties: {
+                        nbf: startTime,
+                        enable_screenshare: false,
+                        enable_knocking: true,
+                        enable_chat: true,
+                        start_video_off: true,
+                        start_audio_off: true,
+                        },
+                    }),
+                    });
+                    const data=await response.json();
+
+                    const response2 = await fetch(
+                    "https://api.daily.co/v1/meeting-tokens",
+                    {
+                        method: "POST",
+                        headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${process.env.live_key}`,
+                        },
+                        body: JSON.stringify({
+                        properties: {
+                            room_name: `${data.name}`,
+                            is_owner: true,
+                        },
+                        }),
+                    }
+                    );
+                    const data2=await response2.json();
+                    adminLink = data.url + `?t=${data2.token}`;
+                    const updateData=await video.updateOne(
+                        {_id:ID},
+                        {
+                            $set:{
+                                adminLink:adminLink,
+                                userLink:data.url,
+                                startTime:startTime
+                            }
+                        }
+                    );
+                    res.status(200).json({'msg':'Video call setup completed'});
+                }
+                else{
+                    res.status(403).json({'msg':'Already setup'})
+                }
+            }
+            catch(err){
+                console.log(err);
+                res.status(500).json({'msg':'Oops Error. We are looking into it.'})
+            }
+        }
+        else{
+            res.status(400).json({'msg':'start time is missing'});
+        }
+    }
+    else{
+        res.status(400).json({'msg':'ID is missing'});
+    }
+}
+
+exports.setResponse=async(req,res)=>{
+    const {ID,response}=req.body;
+    if(ID){
+        if(response){
+            try{
+                const getData=await video.find({_id:ID});
+                if(getData[0].adminLink=='' &&  getData[0].userLink==''){
+                    if(getData[0].response==''){
+                        const updateData=await video.updateOne(
+                            {_id:ID},
+                            {
+                                $set:{
+                                    response:response
+                                }
+                            }
+                        );
+                        res.status(200).json({'msg':'Response Set'});
+                    }
+                    else{
+                        res.status(403).json({'msg':'Already set response'});
+                    }
+                }
+                else{
+                    res.status(401).json({'msg':'You set video call already, cant set response.'})
+                }
+            }
+            catch(err){
+                console.log(err);
+                res.status(500).json({'msg':'Oops Error, We are looking into it.'})
+            }
+        }
+        else{
+            res.status(400).json({'msg':'please write response'});
+        }
+    }
+    else{
+        res.status(400).json({'msg':'ID is missing'});
+    }
+}
 
 //applicants controllers for interviews
 exports.showLiveRooms=async(req,res)=>{
@@ -821,12 +954,15 @@ exports.pingVideoCall=async(req,res)=>{
             try{
                 const checkResult=await video.find({jobID:jobID,userID:req.USER._id});
                 const checkInterview=await result.find({jobID:jobID,userID:req.USER._id});
+                const jobData=await job.find({_id:jobID}).populate('company','name');
+                
                 if(checkInterview.length>0 && checkInterview[0].projectAssesment == true){
                     if (checkResult.length == 0) {
                         const videoCall = await new video({
                         jobID,
                         problemStatement,
                         userID: req.USER._id,
+                        companyID:jobData[0].company._id
                         });
                         const saveData = await videoCall.save();
                         res.status(200).json({
@@ -856,3 +992,4 @@ exports.pingVideoCall=async(req,res)=>{
         res.status(400).json({'msg':"jobID is missing."});
     }
 }
+

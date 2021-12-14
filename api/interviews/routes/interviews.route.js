@@ -73,6 +73,12 @@ router.get(
 );
 
 
+router.get('/getVideoRequests',auth,role('company'),block,interviewController.showVideoRequests);
+
+router.put('/setupVideoCall',auth,role('company'),block,interviewController.setVideoCall);
+
+router.put('/setResponse',auth,role('company'),block,interviewController.setResponse);
+
 
 
 //applicant side routes

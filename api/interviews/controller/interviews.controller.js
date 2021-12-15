@@ -318,54 +318,65 @@ exports.startInterviews=async(req,res)=>{
     const {jobID}=req.body;
     if(jobID){
         try{
+            const checkRecorded=await recorded.find({jobID:jobID});
+            const checkQuesstionnarie=await questionnarie.find({jobID:jobID});
+            const checkAlgorithm = await algorithm.find({jobID:jobID});
+            const checkProejct=await project.find({jobID:jobID})
             const getSelected=await job.find({_id:jobID},{selected:true,title:true}).populate('selected','name email').populate('company','name');
             const data=getSelected[0].selected;
             let resultLength=await result.find({jobID:jobID});
             resultLength=resultLength.length;
-            if(resultLength!=data.length){
-                await data.map(async (val)=>{
-                    let resultData=await result.find({jobID:jobID,userID:val._id});
-                    let Result=await new result({
-                        jobID,
-                        userID:val._id,
-                    });
-                    let saved=await Result.save();
-                    let htmlTemp = `<p>Dear <strong>${val.name} ,</strong></p>
-                    <p>This is to inform you that your interview for the <strong>${getSelected[0].title}</strong> postion
-                    at <strong>${getSelected[0].company.name}</strong> has started.<br>
-                    Please visit your IAS dashboard to start the interview ASAP.<br><strong>Best of Luck.</strong></P>
-                    <strong>Regards:</strong><br>
-                    <p>IAS.Offical.Team</p>`;
-                    transporter.sendMail({
-                        to: val.email,
-                        subject: "Job Interview Update",
-                        html: htmlTemp,
-                    });
+            if(checkRecorded.length>0 && checkQuesstionnarie.length>0 && checkAlgorithm.length>0 && checkProejct.length>0 ){
+                if(resultLength!=data.length){
+                    await data.map(async (val)=>{
+                        let resultData=await result.find({jobID:jobID,userID:val._id});
+                        let Result=await new result({
+                            jobID,
+                            userID:val._id,
+                            companyID:getSelected.company._id
+                        });
+                        let saved=await Result.save();
+                        let htmlTemp = `<p>Dear <strong>${val.name} ,</strong></p>
+                        <p>This is to inform you that your interview for the <strong>${getSelected[0].title}</strong> postion
+                        at <strong>${getSelected[0].company.name}</strong> has started.<br>
+                        Please visit your IAS dashboard to start the interview ASAP.<br><strong>Best of Luck.</strong></P>
+                        <strong>Regards:</strong><br>
+                        <p>IAS.Offical.Team</p>`;
+                        transporter.sendMail({
+                            to: val.email,
+                            subject: "Job Interview Update",
+                            html: htmlTemp,
+                        });
 
-                });
-                let changeAlgo=await algorithm.updateOne({jobID:jobID},
+                    });
+                    let changeAlgo=await algorithm.updateOne({jobID:jobID},
+                            {
+                                $set:{
+                                    edit:false
+                                }
+                            }
+                    );
+                    let changeQuestionnarie=await questionnarie.updateOne(
+                        {jobID:jobID},
                         {
                             $set:{
                                 edit:false
                             }
                         }
-                );
-                let changeQuestionnarie=await questionnarie.updateOne(
-                    {jobID:jobID},
-                    {
-                        $set:{
-                            edit:false
-                        }
-                    }
-                )
-                return res.status(200).json({'msg':"Emails sent to all selected applicants",'response':`Interview started for the ${getSelected[0].title} job`})
+                    )
+                    return res.status(200).json({'msg':"Emails sent to all selected applicants",'response':`Interview started for the ${getSelected[0].title} job`})
+                }
+                else{
+                    return res.status(409).json({'msg':'already started interview for this job'})
+                }
             }
             else{
-                return res.status(409).json({'msg':'already started interview for this job'})
+                res.status(401).json({'msg':'Set all interviews first'});
             }
+            
         }
         catch(err){
-            console.log("err");
+            console.log(err);
             return res.status(500).json({'msg':err})
         }
     }
@@ -730,6 +741,134 @@ exports.setResponse=async(req,res)=>{
         res.status(400).json({'msg':'ID is missing'});
     }
 }
+
+
+exports.getRecordedCount=async(req,res)=>{
+    const {jobID}=req.params;
+    if(jobID){
+        try{
+            let pending=0;
+            let completed=0;
+            const recordedResult=await result.find({jobID:jobID});
+            recordedResult.map((val)=>{
+                if(val.recorded== true && val.recordedResult.length==0){
+                    pending++;
+                }
+                else{
+                    completed++;
+                }
+            });
+            res.status(200).json({'Pending':pending,'Completed':completed});
+        }
+        catch(err){
+            res.status(500).json({'msg':'Oops error, We are looking into it.'});
+        }
+    }
+    else{
+        res.status(400).json({'msg':'jobID is missing'});
+    }
+}
+
+exports.getMcqCount = async (req, res) => {
+  const { jobID } = req.params;
+  if (jobID) {
+    try {
+      let pending = 0;
+      let completed = 0;
+      const recordedResult = await result.find({ jobID: jobID });
+      recordedResult.map((val) => {
+        if (val.mcq == true && val.mcqResult == null) {
+          pending++;
+        } else {
+          completed++;
+        }
+      });
+      res.status(200).json({ Pending: pending, Completed: completed });
+    } catch (err) {
+      res.status(500).json({ msg: "Oops error, We are looking into it." });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};
+
+exports.getAlgoCount = async (req, res) => {
+  const { jobID } = req.params;
+  if (jobID) {
+    try {
+      let pending = 0;
+      let completed = 0;
+      const recordedResult = await result.find({ jobID: jobID });
+      recordedResult.map((val) => {
+        if (val.algorithm == true && val.algorithmResult.length == 0) {
+          pending++;
+        } else {
+          completed++;
+        }
+      });
+      res.status(200).json({ Pending: pending, Completed: completed });
+    } catch (err) {
+        console.log(err);
+      res.status(500).json({ msg: "Oops error, We are looking into it." });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};
+
+exports.getProjectCount = async (req, res) => {
+  const { jobID } = req.params;
+  if (jobID) {
+    try {
+      let pending = 0;
+      let completed = 0;
+      const recordedResult = await result.find({ jobID: jobID });
+      recordedResult.map((val) => {
+        if (val.allComplete == false ) {
+          pending++;
+        } else {
+          completed++;
+        }
+      });
+      res.status(200).json({ Pending: pending, Completed: completed });
+    } catch (err) {
+        console.log(err);
+      res.status(500).json({ msg: "Oops error, We are looking into it." });
+    }
+  } else {
+    res.status(400).json({ msg: "jobID is missing" });
+  }
+};
+
+exports.getAllDetails=async(req,res)=>{
+    try{
+        let companyID = req.USER._id
+        let counted = await result.aggregate([
+            {
+                $match:{
+                    companyID:{
+                        $eq:req.USER._id
+                    },
+                    allComplete:{
+                        $eq:true
+                    }
+                }
+            },
+            {
+                $count:"Completed"
+            },
+        ])
+        res.json(counted);
+    }
+    catch(err){
+        res.status(500).json({ msg:"serveer error" });
+
+    }
+}
+
+// exports.acceptFinal=async(req,res)=>{
+//     const {jobID,userID,message}
+// }
 
 //-------------------------------//
 //applicants controllers for interviews

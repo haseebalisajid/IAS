@@ -86,7 +86,39 @@ router.put('/setupVideoCall',auth,role('company'),block,interviewController.setV
 
 router.put('/setResponse',auth,role('company'),block,interviewController.setResponse);
 
+router.get(
+  "/getRecordedCount/:jobID",
+  auth,
+  role("company"),
+  block,
+  interviewController.getRecordedCount
+);
 
+router.get(
+  "/getMcqCount/:jobID",
+  auth,
+  role("company"),
+  block,
+  interviewController.getMcqCount
+);
+
+router.get(
+  "/getAlgoCount/:jobID",
+  auth,
+  role("company"),
+  block,
+  interviewController.getAlgoCount
+);
+
+router.get(
+  "/getProjectCount/:jobID",
+  auth,
+  role("company"),
+  block,
+  interviewController.getProjectCount
+);
+
+router.get('/getTotal',auth,role('company'),block,interviewController.getAllDetails);
 
 //applicant side routes
 

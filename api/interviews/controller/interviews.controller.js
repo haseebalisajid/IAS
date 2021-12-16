@@ -1167,7 +1167,7 @@ exports.getUserStates = async (req, res) => {
 
 exports.showSelectedJobs=async(req,res)=>{
     try{
-        const getData=await job.find({selected:{$all:[req.USER._id]}});
+        const getData=await job.find({selected:{$all:[req.USER._id]}}).populate('company','name email');
         res.status(200).json(getData);
     }
     catch(err){

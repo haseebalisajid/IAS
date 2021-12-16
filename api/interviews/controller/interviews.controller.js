@@ -1168,7 +1168,7 @@ exports.getUserStates = async (req, res) => {
 exports.showSelectedJobs=async(req,res)=>{
     try{
         const getData=await job.find({selected:{$all:[req.USER._id]}});
-        console.log(getData);
+        res.status(200).json(getData);
     }
     catch(err){
         console.log(err);

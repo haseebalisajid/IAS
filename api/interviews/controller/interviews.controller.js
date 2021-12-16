@@ -1153,7 +1153,7 @@ exports.getUserStates = async (req, res) => {
     try {
       const Result = await result.find(
         { jobID: jobID, userID: userID },
-        { recorded: true, mcq: true, algorithm: true, projecetAssesment: true }
+        { recorded: true, mcq: true, algorithm: true, projectAssesment: true }
       );
       res.status(200).json(Result);
     } catch (err) {

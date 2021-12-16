@@ -971,21 +971,44 @@ exports.getAllDetails=async(req,res)=>{
             var  arr=[]
            const getData = findJobs.map(async (val) => {
              let intvResult = await result.find({ jobID: val._id });
+             let checkMcq=await questionnarie.find({jobID:val._id});
+             let checkRecorded=await recorded.find({jobID:val._id});
+             let checkAlgorithm=await algorithm.find({jobID:val._id});
+             let checkProject=await project.find({jobID:val._id});
+            var start = false;
+            if (
+                checkMcq.length > 0 &&
+                checkRecorded.length > 0 &&
+                checkAlgorithm.length > 0 &&
+                checkProject.length > 0
+            ) {
+                start = true;
+            }
              if (intvResult.length > 0) {
                var completed = 0;
                var pending = 0;
-               intvResult.map((dat) => {
-                 if (dat.completed == true) {
-                   completed++;
-                 } else {
-                   pending++;
-                 }
-               });
+               var start=false;
+               if (
+                 checkMcq.length > 0 &&
+                 checkRecorded.length > 0 &&
+                 checkAlgorithm.length > 0 &&
+                 checkProject.length > 0
+               ){
+                   start=true;
+               }
+                 intvResult.map((dat) => {
+                   if (dat.completed == true) {
+                     completed++;
+                   } else {
+                     pending++;
+                   }
+                 });
                let obj1 = {
                 jobID:val._id,
                  jobName: val.title,
                  completed: completed,
                  pending: pending,
+                 start:start
                };
                arr.push(obj1);
              } else {
@@ -994,6 +1017,7 @@ exports.getAllDetails=async(req,res)=>{
                  jobName: val.title,
                  completed: 0,
                  pending: 0,
+                 start:start
                };
                arr.push(obj)
              }

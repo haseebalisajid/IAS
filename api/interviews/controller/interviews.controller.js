@@ -356,7 +356,7 @@ exports.startInterviews=async(req,res)=>{
                         let Result=await new result({
                             jobID,
                             userID:val._id,
-                            companyID:getSelected.company._id
+                            companyID:getSelected[0].company._id
                         });
                         let saved=await Result.save();
                         let htmlTemp = `<p>Dear <strong>${val.name} ,</strong></p>

@@ -222,41 +222,40 @@ const randomNumber=(len)=>{
 }
 
 exports.setRandomAlogrithm=async(req,res)=>{
-    const {jobID,totalQuestions,testName,totalTime,deadline}=req.body;
+    const {jobID,testName,totalTime,deadline}=req.body;
     var questions=[];
     if(jobID){
-        if(totalQuestions<=5){
-            let num=randomNumber(totalQuestions);
-            let i=0;
-            while(i<totalQuestions){
-                let objVal = algoDat.algo[num[i]];
-                questions.push(objVal)
-                i++;
-            }
-            try{
-                const checkInterview=await algorithm.find({jobID:jobID});
-                if(checkInterview.length==0 ){
-                    let algoInterview=await new algorithm({
-                        jobID,
-                        testName,
-                        totalTime,
-                        deadline,
-                        questions
-                    });
-                    let saveData=await algoInterview.save();
-                    res.json({'response':saveData,'msg':'Interview Created'});
-                }
-                else{
-                    res.status(401).json({'msg':'Already setup Algorithm Interview'})
-                }
-            }
-            catch(err){
-                res.status(500).json({'msg':'Oops'})
-            }
-
+        let num = randomNumber(5);
+        let i = 0;
+        while (i < 5) {
+            let objVal = algoDat.algo[num[i]];
+            questions.push(objVal);
+            i++;
         }
-        else{
-            res.status(401).json({'msg':'max length is 5'})
+        try {
+            const checkInterview = await algorithm.find({
+                jobID: jobID,
+            });
+            if (checkInterview.length == 0) {
+                let algoInterview = await new algorithm({
+                    jobID,
+                    testName,
+                    totalTime,
+                    deadline,
+                    questions,
+                });
+                let saveData = await algoInterview.save();
+                res.json({
+                    response: saveData,
+                    msg: "Interview Created",
+                });
+            } else {
+            res
+                .status(403)
+                .json({ msg: "Already setup Algorithm Interview" });
+            }
+        } catch (err) {
+            res.status(500).json({ msg: "Oops" });
         }
     }
     else{
@@ -1029,20 +1028,29 @@ exports.getAllDetails=async(req,res)=>{
     }
 }
 
-// exports.acceptFinal=async(req,res)=>{
-//     const {jobID,userID,message} =req.body;
-//     if(jobID){
-//         if(userID){
-
-//         }
-//         else{
-//             res.status(400).json({'msg':'userID is missing'})
-//         }
-//     }
-//     else{
-//         res.status(400).json({'msg':'jobID is missing'})
-//     }
-// }
+exports.acceptFinal=async(req,res)=>{
+    const {jobID,userID,message} =req.body;
+    if(jobID){
+        if(userID){
+            try{
+                const getJob=await job.find({jobID:jobID},{finalSelected:true});
+                if(getJob[0].finalSelected.includes(userID)){
+                    console.log(hello);
+                }
+            }
+            catch(err){
+                console.log(err);
+                res.status(500).json({'msg':'Oops Error, We are looking into it'})
+            }
+        }
+        else{
+            res.status(400).json({'msg':'userID is missing'})
+        }
+    }
+    else{
+        res.status(400).json({'msg':'jobID is missing'})
+    }
+}
 
 //-------------------------------//
 //applicants controllers for interviews

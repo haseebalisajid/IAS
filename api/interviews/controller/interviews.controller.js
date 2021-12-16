@@ -28,43 +28,47 @@ exports.recordedInterview=async(req,res)=>{
     const { jobID, totalTime, testName, deadline, questions } = req.body;
     if(jobID){
         const jobData=await job.find({_id:jobID});
-        if(jobData[0].company.toString() == req.USER._id.toString()){
-            if(questions.length>0){
-                if(totalTime<=20){
-                    if(questions.length<=2){
-                        const Recorded = await new recorded({
-                        jobID,
-                        totalTime,
-                        testName,
-                        deadline,
-                        questions,
-                        });
-                        try {
-                        let Interview = await Recorded.save();
-                        res
-                            .status(200)
-                            .json({
-                            Response: Interview,
-                            msg: "Interview Created",
-                            });
-                        } catch (err) {
-                        res.status(500).json({ msg: err });
-                        }
+        const checkRecorded=await recorded.find({jobID:jobID});
+        if(checkRecorded.length==0){
+            if (jobData[0].company.toString() == req.USER._id.toString()) {
+              if (questions.length > 0) {
+                if (totalTime <= 20) {
+                  if (questions.length <= 2) {
+                    const Recorded = await new recorded({
+                      jobID,
+                      totalTime,
+                      testName,
+                      deadline,
+                      questions,
+                    });
+                    try {
+                      let Interview = await Recorded.save();
+                      res.status(200).json({
+                        Response: Interview,
+                        msg: "Interview Created",
+                      });
+                    } catch (err) {
+                      res.status(500).json({ msg: err });
                     }
-                    else{
-                        res.status(401).json({'msg':'Max limit of questions is 2'})
-                    }
+                  } else {
+                    res
+                      .status(401)
+                      .json({ msg: "Max limit of questions is 2" });
+                  }
+                } else {
+                  res.status(401).json({ msg: "max time limit is 20 min" });
                 }
-                else{
-                    res.status(401).json({msg:"max time limit is 20 min"})
-                }
-            }
-            else{
-                res.status(400).json({'msg':'please add questions'})
+              } else {
+                res.status(400).json({ msg: "please add questions" });
+              }
+            } else {
+              res
+                .status(401)
+                .json({ msg: "This job is not posted by your company" });
             }
         }
         else{
-            res.status(401).json({'msg':'This job is not posted by your company'})
+            res.status(403).json({'msg':'Already created'})
         }
     }
     else{
@@ -76,35 +80,42 @@ exports.questionnarieInterview=async(req,res)=>{
     const { jobID, totalTime, testName, deadline, questions } = req.body;
     if(jobID){
         const jobData=await job.find({_id:jobID});
-        if(jobData[0].company.toString() == req.USER._id.toString()){
-            if(questions.length>0){
-                if(questions.length<=15){
-                    const mcq=await new questionnarie({
-                        jobID,
-                        totalTime,
-                        deadline,
-                        testName,
-                        questions
-                    });
-                    try{
-                        let questionnaries=await mcq.save();
-                        res.status(200).json({'Response':questionnaries,'msg':'Interview Created'});
-                    }
-                    catch(err){
-                        console.log(err)
-                        res.status(500).json({'msg':err})
-                    }
+        const checkRecorded = await questionnarie.find({ jobID: jobID });
+        if(checkRecorded.length == 0){
+            if (jobData[0].company.toString() == req.USER._id.toString()) {
+              if (questions.length > 0) {
+                if (questions.length <= 15) {
+                  const mcq = await new questionnarie({
+                    jobID,
+                    totalTime,
+                    deadline,
+                    testName,
+                    questions,
+                  });
+                  try {
+                    let questionnaries = await mcq.save();
+                    res
+                      .status(200)
+                      .json({
+                        Response: questionnaries,
+                        msg: "Interview Created",
+                      });
+                  } catch (err) {
+                    console.log(err);
+                    res.status(500).json({ msg: err });
+                  }
+                } else {
+                  res.status(401).json({ msg: "MCQ max limit is 15" });
                 }
-                else{
-                    res.status(401).json({msg:"MCQ max limit is 15"})
-                }
-            }
-            else{
-                res.status(400).json({'msg':'please add questions'})
+              } else {
+                res.status(400).json({ msg: "please add questions" });
+              }
+            } else {
+              res.status(401).json({ msg: "This job is not posted by you" });
             }
         }
         else{
-            res.status(401).json({'msg':'This job is not posted by you'})
+            res.status(403).json({'msg':'Already Exist'});
         }
     }
     else{

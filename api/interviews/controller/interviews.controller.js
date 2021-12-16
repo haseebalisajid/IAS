@@ -4,6 +4,7 @@ const questionnarie=require('../models/questionnarie.model');
 const recorded=require('../models/recorded.model');
 const result=require('../models/result.model');
 const job=require('../../job/models/job.model');
+const User=require('../../user/models/user.model');
 const live=require('../models/liveInterview.model');
 const video=require('../models/videoCall.model');
 const algoDat=require('../models/algoData');
@@ -28,34 +29,47 @@ exports.recordedInterview=async(req,res)=>{
     const { jobID, totalTime, testName, deadline, questions } = req.body;
     if(jobID){
         const jobData=await job.find({_id:jobID});
-        if(jobData[0].company.toString() == req.USER._id.toString()){
-            if(questions.length>0){
-                if(totalTime<=10){
-                    const Recorded=await new recorded({
-                        jobID,
-                        totalTime,
-                        testName,
-                        deadline,
-                        questions
+        const checkRecorded=await recorded.find({jobID:jobID});
+        if(checkRecorded.length==0){
+            if (jobData[0].company.toString() == req.USER._id.toString()) {
+              if (questions.length > 0) {
+                if (totalTime <= 20) {
+                  if (questions.length <= 2) {
+                    const Recorded = await new recorded({
+                      jobID,
+                      totalTime,
+                      testName,
+                      deadline,
+                      questions,
                     });
-                    try{
-                        let Interview=await Recorded.save();
-                        res.status(200).json({'Response':Interview,'msg':'Interview Created'});
+                    try {
+                      let Interview = await Recorded.save();
+                      res.status(200).json({
+                        Response: Interview,
+                        msg: "Interview Created",
+                      });
+                    } catch (err) {
+                      res.status(500).json({ msg: err });
                     }
-                    catch(err){
-                        res.status(500).json({'msg':err})
-                    }
+                  } else {
+                    res
+                      .status(401)
+                      .json({ msg: "Max limit of questions is 2" });
+                  }
+                } else {
+                  res.status(401).json({ msg: "max time limit is 20 min" });
                 }
-                else{
-                    res.status(401).json({msg:"max time limit is 10 min"})
-                }
-            }
-            else{
-                res.status(400).json({'msg':'please add questions'})
+              } else {
+                res.status(400).json({ msg: "please add questions" });
+              }
+            } else {
+              res
+                .status(401)
+                .json({ msg: "This job is not posted by your company" });
             }
         }
         else{
-            res.status(401).json({'msg':'This job is not posted by your company'})
+            res.status(403).json({'msg':'Already created'})
         }
     }
     else{
@@ -67,35 +81,42 @@ exports.questionnarieInterview=async(req,res)=>{
     const { jobID, totalTime, testName, deadline, questions } = req.body;
     if(jobID){
         const jobData=await job.find({_id:jobID});
-        if(jobData[0].company.toString() == req.USER._id.toString()){
-            if(questions.length>0){
-                if(questions.length<=15){
-                    const mcq=await new questionnarie({
-                        jobID,
-                        totalTime,
-                        deadline,
-                        testName,
-                        questions
-                    });
-                    try{
-                        let questionnaries=await mcq.save();
-                        res.status(200).json({'Response':questionnaries,'msg':'Interview Created'});
-                    }
-                    catch(err){
-                        console.log(err)
-                        res.status(500).json({'msg':err})
-                    }
+        const checkRecorded = await questionnarie.find({ jobID: jobID });
+        if(checkRecorded.length == 0){
+            if (jobData[0].company.toString() == req.USER._id.toString()) {
+              if (questions.length > 0) {
+                if (questions.length <= 15) {
+                  const mcq = await new questionnarie({
+                    jobID,
+                    totalTime,
+                    deadline,
+                    testName,
+                    questions,
+                  });
+                  try {
+                    let questionnaries = await mcq.save();
+                    res
+                      .status(200)
+                      .json({
+                        Response: questionnaries,
+                        msg: "Interview Created",
+                      });
+                  } catch (err) {
+                    console.log(err);
+                    res.status(500).json({ msg: err });
+                  }
+                } else {
+                  res.status(401).json({ msg: "MCQ max limit is 15" });
                 }
-                else{
-                    res.status(401).json({msg:"MCQ max limit is 15"})
-                }
-            }
-            else{
-                res.status(400).json({'msg':'please add questions'})
+              } else {
+                res.status(400).json({ msg: "please add questions" });
+              }
+            } else {
+              res.status(401).json({ msg: "This job is not posted by you" });
             }
         }
         else{
-            res.status(401).json({'msg':'This job is not posted by you'})
+            res.status(403).json({'msg':'Already Exist'});
         }
     }
     else{
@@ -154,7 +175,7 @@ exports.algorithmInterview=async(req,res)=>{
             if(jobData[0].company.toString() == req.USER._id.toString()){
                 if(questions.length>0){
                     if(questions.length<=5){
-                        const algorithm=await new algorithm({
+                        const Algorithm=await new algorithm({
                             jobID,
                             totalTime,
                             deadline,
@@ -162,7 +183,7 @@ exports.algorithmInterview=async(req,res)=>{
                             questions
                         });
                         try{
-                            let algorithmInterview=await algorithm.save();
+                            let algorithmInterview=await Algorithm.save();
                             res.status(200).json({'Response':algorithmInterview,'msg':'Interview Created'});
                         }
                         catch(err){
@@ -202,41 +223,40 @@ const randomNumber=(len)=>{
 }
 
 exports.setRandomAlogrithm=async(req,res)=>{
-    const {jobID,totalQuestions,testName,totalTime,deadline}=req.body;
+    const {jobID,testName,totalTime,deadline}=req.body;
     var questions=[];
     if(jobID){
-        if(totalQuestions<=5){
-            let num=randomNumber(totalQuestions);
-            let i=0;
-            while(i<totalQuestions){
-                let objVal = algoDat.algo[num[i]];
-                questions.push(objVal)
-                i++;
-            }
-            try{
-                const checkInterview=await algorithm.find({jobID:jobID});
-                if(checkInterview.length==0 ){
-                    let algoInterview=await new algorithm({
-                        jobID,
-                        testName,
-                        totalTime,
-                        deadline,
-                        questions
-                    });
-                    let saveData=await algoInterview.save();
-                    res.json({'response':saveData,'msg':'Interview Created'});
-                }
-                else{
-                    res.status(401).json({'msg':'Already setup Algorithm Interview'})
-                }
-            }
-            catch(err){
-                res.status(500).json({'msg':'Oops'})
-            }
-
+        let num = randomNumber(5);
+        let i = 0;
+        while (i < 5) {
+            let objVal = algoDat.algo[num[i]];
+            questions.push(objVal);
+            i++;
         }
-        else{
-            res.status(401).json({'msg':'max length is 5'})
+        try {
+            const checkInterview = await algorithm.find({
+                jobID: jobID,
+            });
+            if (checkInterview.length == 0) {
+                let algoInterview = await new algorithm({
+                    jobID,
+                    testName,
+                    totalTime,
+                    deadline,
+                    questions,
+                });
+                let saveData = await algoInterview.save();
+                res.json({
+                    response: saveData,
+                    msg: "Interview Created",
+                });
+            } else {
+            res
+                .status(403)
+                .json({ msg: "Already setup Algorithm Interview" });
+            }
+        } catch (err) {
+            res.status(500).json({ msg: "Oops" });
         }
     }
     else{
@@ -800,15 +820,25 @@ exports.getRecordedCount=async(req,res)=>{
             let pending=0;
             let completed=0;
             const recordedResult=await result.find({jobID:jobID});
-            recordedResult.map((val)=>{
-                if(val.recorded== true && val.recordedResult.length==0){
+            const checkRecorded=await recorded.find({jobID:jobID});
+            const created=checkRecorded.length>0?true:false;
+            if(recordedResult.length>0){
+                recordedResult.map((val) => {
+                  if (val.recorded == true && val.recordedResult.length == 0) {
                     pending++;
-                }
-                else{
+                  } else {
                     completed++;
-                }
-            });
-            res.status(200).json({'Pending':pending,'Completed':completed});
+                  }
+                });
+                res
+                  .status(200)
+                  .json({ 'Pending': pending, 'Completed': completed,'created':created });
+            }
+            else{
+                res
+                  .status(200)
+                  .json({ 'Pending': pending, 'Completed': completed,'created':created });
+            }
         }
         catch(err){
             res.status(500).json({'msg':'Oops error, We are looking into it.'});
@@ -826,14 +856,22 @@ exports.getMcqCount = async (req, res) => {
       let pending = 0;
       let completed = 0;
       const recordedResult = await result.find({ jobID: jobID });
-      recordedResult.map((val) => {
-        if (val.mcq == true && val.mcqResult == null) {
-          pending++;
-        } else {
-          completed++;
-        }
-      });
-      res.status(200).json({ Pending: pending, Completed: completed });
+      const checkRecorded = await questionnarie.find({ jobID: jobID });
+      const created = checkRecorded.length > 0 ? true : false;
+      if(recordedResult.length>0){
+        recordedResult.map((val) => {
+            if (val.mcq == true && val.mcqResult == null) {
+                pending++;
+            } else {
+                completed++;
+            }
+        });
+        res.status(200).json({ Pending: pending, Completed: completed,'created':created });
+      }
+      else{
+        res.status(200).json({ Pending: pending, Completed: completed,'created':created });
+      }
+     
     } catch (err) {
       res.status(500).json({ msg: "Oops error, We are looking into it." });
     }
@@ -849,14 +887,21 @@ exports.getAlgoCount = async (req, res) => {
       let pending = 0;
       let completed = 0;
       const recordedResult = await result.find({ jobID: jobID });
-      recordedResult.map((val) => {
+      const checkRecorded = await algorithm.find({ jobID: jobID });
+      const created = checkRecorded.length > 0 ? true : false;
+      if(recordedResult.length>0){
+        recordedResult.map((val) => {
         if (val.algorithm == true && val.algorithmResult.length == 0) {
-          pending++;
+            pending++;
         } else {
-          completed++;
+            completed++;
         }
-      });
-      res.status(200).json({ Pending: pending, Completed: completed });
+        });
+        res.status(200).json({ 'Pending': pending, 'Completed': completed,'created':created});
+      }
+      else{
+        res.status(200).json({ 'Pending': pending, 'Completed': completed,'created':created});
+      }
     } catch (err) {
         console.log(err);
       res.status(500).json({ msg: "Oops error, We are looking into it." });
@@ -873,14 +918,21 @@ exports.getProjectCount = async (req, res) => {
       let pending = 0;
       let completed = 0;
       const recordedResult = await result.find({ jobID: jobID });
-      recordedResult.map((val) => {
-        if (val.allComplete == false ) {
-          pending++;
-        } else {
-          completed++;
-        }
-      });
-      res.status(200).json({ Pending: pending, Completed: completed });
+      const checkRecorded = await project.find({ jobID: jobID });
+      const created = checkRecorded.length > 0 ? true : false;
+      if(recordedResult.length>0){
+        recordedResult.map((val) => {
+            if (val.allComplete == false) {
+            pending++;
+            } else {
+            completed++;
+            }
+        });
+        res.status(200).json({ 'Pending': pending, 'Completed': completed,'created':created });
+      }
+      else{
+        res.status(200).json({ 'Pending': pending, 'Completed': completed,'created':created });
+      }
     } catch (err) {
         console.log(err);
       res.status(500).json({ msg: "Oops error, We are looking into it." });
@@ -977,20 +1029,60 @@ exports.getAllDetails=async(req,res)=>{
     }
 }
 
-// exports.acceptFinal=async(req,res)=>{
-//     const {jobID,userID,message} =req.body;
-//     if(jobID){
-//         if(userID){
-
-//         }
-//         else{
-//             res.status(400).json({'msg':'userID is missing'})
-//         }
-//     }
-//     else{
-//         res.status(400).json({'msg':'jobID is missing'})
-//     }
-// }
+exports.acceptFinal=async(req,res)=>{f
+    const {jobID,userID} =req.body;
+    if(jobID){
+        if(userID){
+            try{
+                const getJob=await job.find({_id:jobID},{finalSelected:true,company:true,title:true}).populate('company','name');
+                const userDetail=await User.find({_id:userID});
+                if(!getJob[0].finalSelected.includes(userID)){
+                    const updateJob = await job.updateOne(
+                      { _id: jobID },
+                      {
+                        $push: {
+                          finalSelected:userID
+                        },
+                      }
+                    );
+                    let htmlTemp = `<p>Dear <strong>${userDetail[0].name} ,</strong></p>
+                    <p>This is to inform you that you are hired for <strong>${getJob[0].title}</strong> position
+                    at <strong>${getJob[0].company.name}</strong>.<br>
+                    <strong> ${getJob[0].company.name} </strong> will send you further details.<br>
+                    Thank you for using IAS.</P>
+                    <strong>Congratulations</strong><br>
+                    <br>
+                    <strong>Regards:</strong><br>
+                    <p>IAS.Offical.Team</p>`;
+                    transporter.sendMail({
+                        to: userDetail[0].email,
+                        subject: "Hired by company",
+                        html: htmlTemp,
+                    });
+                    userRef.push({
+                        userID: userID,
+                        title: "Hired by Company",
+                        subject: `Congratulation you are hired at ${getJob[0].company.name} for ${getJob[0].title} position.`,
+                    });
+                    res.status(200).json({'response':'User Hired','msg':'Email sent to user'})
+                }
+                else{
+                    res.status(403).json({'msg':'Already Selected'});
+                }
+            }
+            catch(err){
+                console.log(err);
+                res.status(500).json({'msg':'Oops Error, We are looking into it'})
+            }
+        }
+        else{
+            res.status(400).json({'msg':'userID is missing'})
+        }
+    }
+    else{
+        res.status(400).json({'msg':'jobID is missing'})
+    }
+}
 
 //-------------------------------//
 //applicants controllers for interviews

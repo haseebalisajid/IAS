@@ -120,6 +120,14 @@ router.get(
 
 router.get('/getTotal',auth,role('company'),block,interviewController.getAllDetails);
 
+router.put(
+  "/finalSelect",
+  auth,
+  role("company"),
+  block,
+  interviewController.acceptFinal
+);
+
 //applicant side routes
 
 router.get(

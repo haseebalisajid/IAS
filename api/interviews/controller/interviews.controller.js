@@ -30,7 +30,7 @@ exports.recordedInterview=async(req,res)=>{
         const jobData=await job.find({_id:jobID});
         if(jobData[0].company.toString() == req.USER._id.toString()){
             if(questions.length>0){
-                if(totalTime<=10){
+                if(totalTime<=20){
                     if(questions.length<=2){
                         const Recorded = await new recorded({
                         jobID,
@@ -56,7 +56,7 @@ exports.recordedInterview=async(req,res)=>{
                     }
                 }
                 else{
-                    res.status(401).json({msg:"max time limit is 10 min"})
+                    res.status(401).json({msg:"max time limit is 20 min"})
                 }
             }
             else{

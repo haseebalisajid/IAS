@@ -909,6 +909,7 @@ exports.getAllDetails=async(req,res)=>{
                  }
                });
                let obj1 = {
+                jobID:val._id,
                  jobName: val.title,
                  completed: completed,
                  pending: pending,
@@ -916,6 +917,7 @@ exports.getAllDetails=async(req,res)=>{
                arr.push(obj1);
              } else {
                let obj = {
+                 jobID: val._id,
                  jobName: val.title,
                  completed: 0,
                  pending: 0,

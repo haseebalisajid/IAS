@@ -138,6 +138,7 @@ router.get(
   interviewController.showLiveRooms
 );
 
+router.get('/getSelectedJobs',auth,role('applicant'),block,interviewController.showSelectedJobs);
 
 router.get(
   "/getUserStates/:jobID/:userID",

@@ -1165,6 +1165,17 @@ exports.getUserStates = async (req, res) => {
   }
 };
 
+exports.showSelectedJobs=async(req,res)=>{
+    try{
+        const getData=await job.find({selected:{$all:[req.USER._id]}});
+        console.log(getData);
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json({'msg':'Oops Error, we are looking into it.'})
+    }
+}
+
 exports.submitMCQ=async(req,res)=>{
     const {jobID,totalNumber}= req.body;
     if(jobID){

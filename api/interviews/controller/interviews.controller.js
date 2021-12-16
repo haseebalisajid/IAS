@@ -454,8 +454,13 @@ exports.recordedResult=async(req,res)=>{
     const { jobID } = req.params;
     if(jobID){
         try{
-            const getResult=await result.find({jobID:jobID},{recordedResult:true,userID:true}).populate('userID','name');
-            res.status(200).json(getResult);
+            const getResult=await result.find({jobID:jobID},{recordedResult:true,userID:true}).populate('userID','name email');
+            if(getResult.length>0){
+                res.status(200).json(getResult);
+            }  
+            else{
+                res.status(403).json({ msg: "No report found" });
+            }
         }
         catch(err){
             console.log(err);
@@ -474,8 +479,13 @@ exports.questionnarieResult = async (req, res) => {
     try {
       const getResult = await result
         .find({ jobID: jobID }, { mcqResult: true, userID: true })
-        .populate("userID", "name");
-      res.status(200).json(getResult);
+        .populate("userID", "name email");
+        if(getResult.length>0){
+            res.status(200).json(getResult);
+        }
+        else{
+            res.status(403).json({ msg: "No report found" });
+        }
     } catch (err) {
       console.log(err);
       res.status(500).json({ msg: "Oops Error. We are looking into it." });
@@ -492,8 +502,14 @@ exports.algorithmResult = async (req, res) => {
     try {
       const getResult = await result
         .find({ jobID: jobID }, { algorithmResult: true, userID: true })
-        .populate("userID", "name");
-      res.status(200).json(getResult);
+        .populate("userID", "name email");
+        if(getResult.length>0){
+            res.status(200).json(getResult);
+        }
+        else{
+            res.status(403).json({ msg: "No report found" });
+        }
+
     } catch (err) {
       console.log(err);
       res.status(500).json({ msg: "Oops Error. We are looking into it." });
@@ -510,8 +526,13 @@ exports.projectResult = async (req, res) => {
     try {
       const getResult = await result
         .find({ jobID: jobID }, { projectLink: true, userID: true })
-        .populate("userID", "name");
-      res.status(200).json(getResult);
+        .populate("userID", "name email");
+        if(getResult.length>0){
+            res.status(200).json(getResult);  
+        }
+        else{
+            res.status(403).json({'msg':'No report found'});
+        }
     } catch (err) {
       console.log(err);
       res.status(500).json({ msg: "Oops Error. We are looking into it." });

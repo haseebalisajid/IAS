@@ -10,6 +10,7 @@ const profileValidator=require('../../validators/companyPofile.validator');
 const jobValidator = require("../../validators/job.validator");
 const Complain = require("../../user/models/complain.model");
 const Bcrypt = require("bcryptjs");
+const result=require('../../interviews/models/result.model');
 const fetch = require("cross-fetch");
 const stripe = require("stripe");
 const db = require("../../../firebase.config");
@@ -350,57 +351,61 @@ exports.acceptAnApplicant=async(req,res)=>{
     try {
       const jobData = await Job.find({ _id: jobID });
       const userData = await User.find({ _id: userID });
-      if (
-        userData[0].applied.includes(jobID)
-      ) {
-        if (
-          !jobData[0].selected.includes(userID) ||
-          !jobData[0].rejected.includes(userID)
-        ) {
-          const select = await Job.updateOne(
-            { _id: jobID },
-            {
-              $push: {
-                selected: userID,
-              },
-            }
-          );
-          const remove = await Job.updateOne(
-            { _id: jobID },
-            {
-              $pull: {
-                applied: userID,
-              },
-            }
-          );
-          //
-          //
-          let htmlTemp = `<p>Dear <strong>${userData[0].name} ,</strong></p>
-          <p>We are pleased to tell you that you have been shortlisted for interview process
-          in <strong>${req.USER.name}</strong> for the <strong>${jobData[0].title}</strong> position.<br>
-          We will send you the interview details soon.<br><strong>Be paitent.</strong></P>
-          <strong>Regards:</strong><br>
-          <p>IAS.Offical.Team</p>`;
-          transporter.sendMail({
-            to: userData[0].email,
-            subject: "Job Selection Update",
-            html: htmlTemp,
-          });
-          userRef.push({
-            'userID':userID,
-            'title':'Job Update',
-            'subject':`You are seleted for ${jobData[0].title}`,
-          });
+      const resultData=await result.find({jobID:jobID});
+      if(resultData.length==0){
+        if (userData[0].applied.includes(jobID)) {
+          if (
+            !jobData[0].selected.includes(userID) ||
+            !jobData[0].rejected.includes(userID)
+          ) {
+            const select = await Job.updateOne(
+              { _id: jobID },
+              {
+                $push: {
+                  selected: userID,
+                },
+              }
+            );
+            const remove = await Job.updateOne(
+              { _id: jobID },
+              {
+                $pull: {
+                  applied: userID,
+                },
+              }
+            );
+            //
+            //
+            let htmlTemp = `<p>Dear <strong>${userData[0].name} ,</strong></p>
+            <p>We are pleased to tell you that you have been shortlisted for interview process
+            in <strong>${req.USER.name}</strong> for the <strong>${jobData[0].title}</strong> position.<br>
+            We will send you the interview details soon.<br><strong>Be paitent.</strong></P>
+            <strong>Regards:</strong><br>
+            <p>IAS.Offical.Team</p>`;
+            transporter.sendMail({
+              to: userData[0].email,
+              subject: "Job Selection Update",
+              html: htmlTemp,
+            });
+            userRef.push({
+              userID: userID,
+              title: "Job Update",
+              subject: `You are seleted for ${jobData[0].title}`,
+            });
 
-          res.status(200).json({
-            msg: `Email sent to ${userData[0].email}`,
-            status: "Applied for the job",
-          });
+            res.status(200).json({
+              msg: `Email sent to ${userData[0].email}`,
+              status: "Applied for the job",
+            });
+          } else {
+            res.status(403).json({ msg: "Already Marked" });
+          }
         } else {
-          res.status(403).json({ msg: "Already Marked" });
+          res.status(403).json({ msg: "User not Applied" });
         }
-      } else {
-        res.status(403).json({ msg: "User not Applied" });
+      }
+      else{
+        res.status(403).json({'msg':'You have started the interviews. Cant accept Applicant'});
       }
     } catch (err) {
       res.status(500).send(err.msg);

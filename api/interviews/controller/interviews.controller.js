@@ -174,7 +174,7 @@ exports.algorithmInterview=async(req,res)=>{
             if(jobData[0].company.toString() == req.USER._id.toString()){
                 if(questions.length>0){
                     if(questions.length<=5){
-                        const algorithm=await new algorithm({
+                        const Algorithm=await new algorithm({
                             jobID,
                             totalTime,
                             deadline,
@@ -182,7 +182,7 @@ exports.algorithmInterview=async(req,res)=>{
                             questions
                         });
                         try{
-                            let algorithmInterview=await algorithm.save();
+                            let algorithmInterview=await Algorithm.save();
                             res.status(200).json({'Response':algorithmInterview,'msg':'Interview Created'});
                         }
                         catch(err){

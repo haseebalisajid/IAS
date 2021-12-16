@@ -64,6 +64,13 @@ const jobSchema = new Schema({
       default: [],
     },
   ],
+  finalSelected: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: [],
+    },
+  ],
   interview:{
     type:Boolean,
     default:false

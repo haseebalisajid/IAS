@@ -9,6 +9,8 @@ admin.initializeApp({
 });
 
 // Initialize Firebase
-const database=admin.database().ref('/notifications');
+const userRef=admin.database().ref('/userNotifications');
+const companyRef=admin.database().ref('/companyNotifications');
+const adminRef=admin.database().ref('/adminNotifications');
 
-module.exports = database;
+module.exports = {userRef,companyRef,adminRef};

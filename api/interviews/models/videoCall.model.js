@@ -28,6 +28,10 @@ const videoCallSchema = mongoose.Schema({
   problemStatement:{
       type:String,
   },
+  roomName:{
+    type:String,
+    default:''
+  },
   response:{
     type:String,
     default:''

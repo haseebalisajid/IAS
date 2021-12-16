@@ -16,6 +16,10 @@ const liveSchema = mongoose.Schema({
   adminLink: {
     type: String,
   },
+  roomName:{
+    type:String,
+    default:''
+  },
   userLink: {
     type: String,
   },

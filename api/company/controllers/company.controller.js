@@ -13,10 +13,14 @@ const Bcrypt = require("bcryptjs");
 const fetch = require("cross-fetch");
 const stripe = require("stripe");
 const db = require("../../../firebase.config");
-// const db = require("../../../firebase.config");
 const Stripe = stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2020-08-27",
 });
+
+const userRef=db.userRef;
+const adminRef=db.adminRef;
+const companyRef=db.companyRef;
+
 const transporter = nodemailer.createTransport({
   service: "Gmail",
   auth: {
@@ -204,7 +208,11 @@ exports.paymentCheckout=async (req,res)=>{
           "http://localhost:4000/success?session_id={CHECKOUT_SESSION_ID}",
         cancel_url: "http://localhost:4000/failed",
       });
-      
+      adminRef.push({
+        userID:req.USER._id,
+        title:'Subscription',
+        subject:`${req.USER.name} just subscribed to your system`
+      })
       res.status(200).json({ session: session});
     } catch (err) {
       res.status(500).json(err);
@@ -263,10 +271,11 @@ exports.postJob=async (req,res)=>{
 
 //get all jobs 
 exports.getAllJobs=async (req,res)=>{
+    const date=Date.now();
   try {
     const allJobs = await Job.find({ company: req.USER._id });
     if (allJobs.length > 0) {
-      // checking firebase db
+      console.log(date);
       res.status(200).json(allJobs);
     } else {
       res.status(501).json({ msg: "You posted 0 jobs" });
@@ -336,6 +345,7 @@ exports.getparticularUserDetail=async(req,res)=>{
 //accept an applicant for a particular job
 exports.acceptAnApplicant=async(req,res)=>{
   const { jobID, userID } = req.body;
+  const date=Date.now();
   if (jobID && userID) {
     try {
       const jobData = await Job.find({ _id: jobID });
@@ -375,6 +385,11 @@ exports.acceptAnApplicant=async(req,res)=>{
             to: userData[0].email,
             subject: "Job Selection Update",
             html: htmlTemp,
+          });
+          userRef.push({
+            'userID':userID,
+            'title':'Job Update',
+            'subject':`You are seleted for ${jobData[0].title}`,
           });
 
           res.status(200).json({
@@ -427,6 +442,16 @@ exports.rejectAnApplicant = async (req, res) => {
                 },
               }
             );
+            let htmlTemp = `<p>Dear <strong>${userData[0].name} ,</strong></p>
+            <p>This is to inform you that your application for ${jobData[0].title} at <strong>${req.USER.name}</strong> <br>
+            is rejected. Better Luck Next Time <br>
+            <strong>Regards:</strong><br>
+            <p>IAS.Offical.Team</p>`;
+            transporter.sendMail({
+              to: userData[0].email,
+              subject: "Job Update",
+              html: htmlTemp,
+            });
             res
               .status(200)
               .json({ msg:'Rejected' });
@@ -487,6 +512,11 @@ exports.submitComplain=async(req,res)=>{
         });
         try {
           let complainData = await complain.save();
+          adminRef.push({
+            userID:req.USER._id,
+            title:`${req.USER.name} submit Complain`,
+            subject:description
+          });
           res.status(200).send('complain send');
         } catch (err) {
           res.status(500).send("something went wrong.");

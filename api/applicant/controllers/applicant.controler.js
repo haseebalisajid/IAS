@@ -5,8 +5,14 @@ const Job=require('../../job/models/job.model')
 const nodemailer = require("nodemailer");
 const passwordValidator = require("../../validators/password.validator");
 const profileValidator = require("../../validators/applicantProfile.validator");
+const db = require("../../../firebase.config");
 const Complain=require('../../user/models/complain.model')
 const Bcrypt = require("bcryptjs");
+
+
+const userRef=db.userRef;
+const adminRef=db.adminRef;
+const companyRef=db.companyRef;
 
 const transporter = nodemailer.createTransport({
   service: "Gmail",
@@ -238,6 +244,11 @@ exports.submitComplain=async(req,res)=>{
         });
         try {
           let complainData = await complain.save();
+          adminRef.push({
+            userID:req.USER._id,
+            title:`${req.USER.name} submit Complain`,
+            subject:description
+          });
           res.status(200).send("complain send");
         } catch (err) {
           res.status(500).send("something went wrong.");

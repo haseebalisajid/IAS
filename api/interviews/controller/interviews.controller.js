@@ -8,6 +8,7 @@ const live=require('../models/liveInterview.model');
 const video=require('../models/videoCall.model');
 const algoDat=require('../models/algoData');
 const nodemailer = require("nodemailer");
+const db = require("../../../firebase.config");
 const fetch = require("cross-fetch");
 
 const transporter = nodemailer.createTransport({
@@ -19,7 +20,9 @@ const transporter = nodemailer.createTransport({
   from: process.env.EMAIL_USERNAME,
 });
 
-
+const userRef=db.userRef;
+const adminRef=db.adminRef;
+const companyRef=db.companyRef;
 
 exports.recordedInterview=async(req,res)=>{
     const { jobID, totalTime, testName, deadline, questions } = req.body;
@@ -528,6 +531,7 @@ exports.scheduleRoom=async  (req,res)=>{
                 let title=jobDetail[0].title;
                 title = title.replace(/ /g, "-");
                 var adminLink;
+                const roomName=`${title}-Interview`;
                 const response=await fetch("https://api.daily.co/v1/rooms", {
                   method: "POST",
                   headers: {
@@ -535,7 +539,7 @@ exports.scheduleRoom=async  (req,res)=>{
                     Authorization: `Bearer ${process.env.live_key}`,
                   },
                   body: JSON.stringify({
-                    name: `${title}-Interview`,
+                    name: roomName,
                     privacy: "private",
                     properties: {
                       nbf: startTime,
@@ -574,7 +578,8 @@ exports.scheduleRoom=async  (req,res)=>{
                     adminLink: adminLink,
                     userLink: data.url,
                     startTime: startTime,
-                    companyID:req.USER._id
+                    companyID:req.USER._id,
+                    roomName:roomName
                 });
                 let liveInter = await liveInterview.save();
                 res.status(200).json(liveInter);
@@ -594,17 +599,23 @@ exports.scheduleRoom=async  (req,res)=>{
 }
 
 exports.showScheduledRooms=async(req,res)=>{
-    try {
-        const data = await live
-        .find({ companyID: req.USER._id }, { userLink: false })
-        .populate("userID", "name").populate('jobID','title');
-        if (data.length > 0) {
-        res.status(200).json(data);
-        } else {
-        res.status(404).json({ msg: "No data found" });
+    const {jobID}=req.params;
+    if(jobID){
+        try {
+            const data = await live
+            .find({ jobID: jobID }, { userLink: false })
+            .populate("userID", "name").populate('jobID','title');
+            if (data.length > 0) {
+            res.status(200).json(data);
+            } else {
+            res.status(404).json({ msg: "No data found" });
+            }
+        } catch (err) {
+            res.status(500).json({ msg: "Oops Error,, we are looking into it." });
         }
-    } catch (err) {
-        res.status(500).json({ msg: "Oops Error,, we are looking into it." });
+    }
+    else{
+        res.status(400).json({'msg':'jobID is missing'});
     }
 }
 
@@ -629,10 +640,11 @@ exports.setVideoCall=async(req,res)=>{
     if(ID){
         if(startTime){
             try{
-                const getData=await video.find({_id:ID});
+                const getData=await video.find({_id:ID}).populate('userID','name email').populate('jobID','title').populate('companyID','name');
                 if(getData[0].adminLink=='' &&  getData[0].userLink==''){
                     let num=Math.floor(Math.random() * 50)+1;;
                     var adminLink;
+                    const roomName=`VideoCall-${num}`;
                     const response=await fetch("https://api.daily.co/v1/rooms", {
                     method: "POST",
                     headers: {
@@ -640,7 +652,7 @@ exports.setVideoCall=async(req,res)=>{
                         Authorization: `Bearer ${process.env.live_key}`,
                     },
                     body: JSON.stringify({
-                        name: `VideoCall-${num}`,
+                        name: roomName,
                         privacy: "private",
                         properties: {
                         nbf: startTime,
@@ -678,10 +690,27 @@ exports.setVideoCall=async(req,res)=>{
                             $set:{
                                 adminLink:adminLink,
                                 userLink:data.url,
-                                startTime:startTime
+                                startTime:startTime,
+                                roomName:roomName
                             }
                         }
                     );
+                    let htmlTemp = `<p>Dear <strong>${getData[0].userID.name} ,</strong></p>
+                    <p>This is to inform you that your video call request is accepted for <strong>${getData[0].jobID.title}</strong> Interview
+                    by <strong>${getData[0].companyID.name}</strong>.<br>
+                    Please visit your IAS dashboard fo check further details.<br></P>
+                    <strong>Regards:</strong><br>
+                    <p>IAS.Offical.Team</p>`;
+                    transporter.sendMail({
+                        to: getData[0].userID.email,
+                        subject: "Video Call Setup Update",
+                        html: htmlTemp,
+                    });
+                    companyRef.push({
+                        userID:getData[0].userID,
+                        title:'video call Setup',
+                        subject:`Video call setup. Check video call section for more details`
+                    })
                     res.status(200).json({'msg':'Video call setup completed'});
                 }
                 else{
@@ -707,7 +736,11 @@ exports.setResponse=async(req,res)=>{
     if(ID){
         if(response){
             try{
-                const getData=await video.find({_id:ID});
+                const getData = await video
+                  .find({ _id: ID })
+                  .populate("userID", "name email")
+                  .populate("jobID", "title")
+                  .populate("companyID", "name");
                 if(getData[0].adminLink=='' &&  getData[0].userLink==''){
                     if(getData[0].response==''){
                         const updateData=await video.updateOne(
@@ -718,6 +751,22 @@ exports.setResponse=async(req,res)=>{
                                 }
                             }
                         );
+                        let htmlTemp = `<p>Dear <strong>${getData[0].userID.name} ,</strong></p>
+                        <p>This is to inform you that your video call request is not accepted for <strong>${getData[0].jobID.title}</strong> Interview
+                        by <strong>${getData[0].companyID.name}</strong>.<br>
+                        Please visit your IAS dashboard fo check further details.<br></P>
+                        <strong>Regards:</strong><br>
+                        <p>IAS.Offical.Team</p>`;
+                        transporter.sendMail({
+                          to: getData[0].userID.email,
+                          subject: "Video Call Setup Update",
+                          html: htmlTemp,
+                        });
+                        companyRef.push({
+                          userID: getData[0].userID,
+                          title: "video call not Setup",
+                          subject: `${response}`,
+                        });
                         res.status(200).json({'msg':'Response Set'});
                     }
                     else{
@@ -844,34 +893,69 @@ exports.getAllDetails=async(req,res)=>{
     try{
         let companyID = req.USER._id
         let counted = await result.aggregate([
-            {
-                $match:{
-                    companyID:{
-                        $eq:req.USER._id
-                    },
-                    allComplete:{
-                        $eq:true
-                    }
-                }
-            },
-            {
-                $count:"Completed"
-            },
-        ])
-        res.json(counted);
+
+					{
+                        $lookup: {
+							from: "jobs",
+							localField: "jobID",
+							foreignField: "_id",
+							as: "job",
+						},
+					},
+					{
+						$unwind: "$job",
+					},
+					{
+						$group: {
+							_id: "$jobID",
+							completed: {
+								$sum: { $cond: ["$allComplete", 1, 0] },
+							},
+							pending: {
+								$sum: { $cond: ["$allComplete", 0, 1] },
+							},
+							doc: { $first: "$$ROOT" },
+						},
+					},
+					{
+						$replaceRoot: {
+							newRoot: {
+								$mergeObjects: [
+									{ completed: "$completed" },
+									{ pending: "$pending" },
+									"$doc",
+								],
+							},
+						},
+					},
+				]);
+        res.status(200).json(counted);
     }
     catch(err){
+      console.log(err);
         res.status(500).json({ msg:"serveer error" });
 
     }
 }
 
 // exports.acceptFinal=async(req,res)=>{
-//     const {jobID,userID,message}
+//     const {jobID,userID,message} =req.body;
+//     if(jobID){
+//         if(userID){
+
+//         }
+//         else{
+//             res.status(400).json({'msg':'userID is missing'})
+//         }
+//     }
+//     else{
+//         res.status(400).json({'msg':'jobID is missing'})
+//     }
 // }
 
 //-------------------------------//
 //applicants controllers for interviews
+
 exports.showLiveRooms=async(req,res)=>{
     try{
         const data=await live.find({userID:req.USER._id},{adminLink:false}).populate('companyID','name').populate('jobID','title');
@@ -991,6 +1075,12 @@ exports.submitAlgorithm = async (req, res) => {
                           subject: "Job Interview Update",
                           html: htmlTemp,
                         });
+
+                        userRef.push({
+                            userID:req.USER._id,
+                            title:'Job Interview Update',
+                            subject:`You qualified for the next interview phase of ${getSelected[0].title} at ${getSelected[0].company.name}`
+                        })
                     }
                     res.status(200).json({ msg: "Result Submitted" });
                 } else {
@@ -1022,6 +1112,11 @@ exports.submitAlgorithm = async (req, res) => {
                         subject: "Job Interview Update",
                         html: htmlTemp,
                     });
+                    userRef.push({
+                        userID:req.USER._id,
+                        title:'Job Interview Update',
+                        subject:`You are not qualified for the next interview phase of ${getSelected[0].title} at ${getSelected[0].company.name}`
+                    })
                 }
                 res.status(200).json({ msg: "you are not qualified for the next phase. Better luck next time" });
             }
@@ -1160,9 +1255,14 @@ exports.pingVideoCall=async(req,res)=>{
                         companyID:jobData[0].company._id
                         });
                         const saveData = await videoCall.save();
+                        companyRef.push({
+                            userID:jobData[0].company._id,
+                            title:'video call request',
+                            subject:`${req.USER.name} wanted to set a video call for the interview`
+                        })
                         res.status(200).json({
-                        response: saveData,
-                        msg: "Successfuly pinged company HR",
+                            response: saveData,
+                            msg: "Successfuly pinged company HR",
                         });
                     } else {
                         res

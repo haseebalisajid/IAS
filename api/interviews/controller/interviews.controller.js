@@ -331,7 +331,7 @@ exports.startInterviews=async(req,res)=>{
             resultLength=resultLength.length;
             if(checkRecorded.length>0 && checkQuesstionnarie.length>0 && checkAlgorithm.length>0 && checkProejct.length>0 ){
                 if(resultLength!=data.length){
-                    await data.map(async (val)=>{
+                    const sendMails=await data.map(async (val)=>{
                         let resultData=await result.find({jobID:jobID,userID:val._id});
                         let Result=await new result({
                             jobID,
@@ -352,6 +352,7 @@ exports.startInterviews=async(req,res)=>{
                         });
 
                     });
+                    const sentMail=await Promise.all(sendMails);
                     let changeAlgo=await algorithm.updateOne({jobID:jobID},
                             {
                                 $set:{
@@ -892,44 +893,80 @@ exports.getProjectCount = async (req, res) => {
 exports.getAllDetails=async(req,res)=>{
     try{
         let companyID = req.USER._id
-        let counted = await result.aggregate([
+        const findJobs=await job.find({company:companyID});
+        if(findJobs.length>0){
+            var  arr=[]
+           const getData = findJobs.map(async (val) => {
+             let intvResult = await result.find({ jobID: val._id });
+             if (intvResult.length > 0) {
+               var completed = 0;
+               var pending = 0;
+               intvResult.map((dat) => {
+                 if (dat.completed == true) {
+                   completed++;
+                 } else {
+                   pending++;
+                 }
+               });
+               let obj1 = {
+                 jobName: val.title,
+                 completed: completed,
+                 pending: pending,
+               };
+               arr.push(obj1);
+             } else {
+               let obj = {
+                 jobName: val.title,
+                 completed: 0,
+                 pending: 0,
+               };
+               arr.push(obj)
+             }
+           });
+           const finalResult = await Promise.all(getData);
+           res.status(200).json(arr);
+        }
+        else{
+            res.status(404).json({'msg':'No jobs found'})
+        }
+        // res.json(arr);
+        // let counted = await result.aggregate([
 
-					{
-                        $lookup: {
-							from: "jobs",
-							localField: "jobID",
-							foreignField: "_id",
-							as: "job",
-						},
-					},
-					{
-						$unwind: "$job",
-					},
-					{
-						$group: {
-							_id: "$jobID",
-							completed: {
-								$sum: { $cond: ["$allComplete", 1, 0] },
-							},
-							pending: {
-								$sum: { $cond: ["$allComplete", 0, 1] },
-							},
-							doc: { $first: "$$ROOT" },
-						},
-					},
-					{
-						$replaceRoot: {
-							newRoot: {
-								$mergeObjects: [
-									{ completed: "$completed" },
-									{ pending: "$pending" },
-									"$doc",
-								],
-							},
-						},
-					},
-				]);
-        res.status(200).json(counted);
+		// 			{
+        //                 $lookup: {
+		// 					from: "jobs",
+		// 					localField: "jobID",
+		// 					foreignField: "_id",
+		// 					as: "job",
+		// 				},
+		// 			},
+		// 			{
+		// 				$unwind: "$job",
+		// 			},
+		// 			{
+		// 				$group: {
+		// 					_id: "$jobID",
+		// 					completed: {
+		// 						$sum: { $cond: ["$allComplete", 1, 0] },
+		// 					},
+		// 					pending: {
+		// 						$sum: { $cond: ["$allComplete", 0, 1] },
+		// 					},
+		// 					doc: { $first: "$$ROOT" },
+		// 				},
+		// 			},
+		// 			{
+		// 				$replaceRoot: {
+		// 					newRoot: {
+		// 						$mergeObjects: [
+		// 							{ completed: "$completed" },
+		// 							{ pending: "$pending" },
+		// 							"$doc",
+		// 						],
+		// 					},
+		// 				},
+		// 			},
+		// 		]);
     }
     catch(err){
       console.log(err);

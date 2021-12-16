@@ -820,15 +820,25 @@ exports.getRecordedCount=async(req,res)=>{
             let pending=0;
             let completed=0;
             const recordedResult=await result.find({jobID:jobID});
-            recordedResult.map((val)=>{
-                if(val.recorded== true && val.recordedResult.length==0){
+            const checkRecorded=await recorded.find({jobID:jobID});
+            const created=checkRecorded.length>0?true:false;
+            if(recordedResult.length>0){
+                recordedResult.map((val) => {
+                  if (val.recorded == true && val.recordedResult.length == 0) {
                     pending++;
-                }
-                else{
+                  } else {
                     completed++;
-                }
-            });
-            res.status(200).json({'Pending':pending,'Completed':completed});
+                  }
+                });
+                res
+                  .status(200)
+                  .json({ 'Pending': pending, 'Completed': completed,'created':created });
+            }
+            else{
+                res
+                  .status(200)
+                  .json({ 'Pending': pending, 'Completed': completed,'created':created });
+            }
         }
         catch(err){
             res.status(500).json({'msg':'Oops error, We are looking into it.'});
@@ -846,14 +856,22 @@ exports.getMcqCount = async (req, res) => {
       let pending = 0;
       let completed = 0;
       const recordedResult = await result.find({ jobID: jobID });
-      recordedResult.map((val) => {
-        if (val.mcq == true && val.mcqResult == null) {
-          pending++;
-        } else {
-          completed++;
-        }
-      });
-      res.status(200).json({ Pending: pending, Completed: completed });
+      const checkRecorded = await questionnarie.find({ jobID: jobID });
+      const created = checkRecorded.length > 0 ? true : false;
+      if(recordedResult.length>0){
+        recordedResult.map((val) => {
+            if (val.mcq == true && val.mcqResult == null) {
+                pending++;
+            } else {
+                completed++;
+            }
+        });
+        res.status(200).json({ Pending: pending, Completed: completed,'created':created });
+      }
+      else{
+        res.status(200).json({ Pending: pending, Completed: completed,'created':created });
+      }
+     
     } catch (err) {
       res.status(500).json({ msg: "Oops error, We are looking into it." });
     }
@@ -869,14 +887,21 @@ exports.getAlgoCount = async (req, res) => {
       let pending = 0;
       let completed = 0;
       const recordedResult = await result.find({ jobID: jobID });
-      recordedResult.map((val) => {
+      const checkRecorded = await algorithm.find({ jobID: jobID });
+      const created = checkRecorded.length > 0 ? true : false;
+      if(recordedResult.length>0){
+        recordedResult.map((val) => {
         if (val.algorithm == true && val.algorithmResult.length == 0) {
-          pending++;
+            pending++;
         } else {
-          completed++;
+            completed++;
         }
-      });
-      res.status(200).json({ Pending: pending, Completed: completed });
+        });
+        res.status(200).json({ 'Pending': pending, 'Completed': completed,'created':created});
+      }
+      else{
+        res.status(200).json({ 'Pending': pending, 'Completed': completed,'created':created});
+      }
     } catch (err) {
         console.log(err);
       res.status(500).json({ msg: "Oops error, We are looking into it." });
@@ -893,14 +918,21 @@ exports.getProjectCount = async (req, res) => {
       let pending = 0;
       let completed = 0;
       const recordedResult = await result.find({ jobID: jobID });
-      recordedResult.map((val) => {
-        if (val.allComplete == false ) {
-          pending++;
-        } else {
-          completed++;
-        }
-      });
-      res.status(200).json({ Pending: pending, Completed: completed });
+      const checkRecorded = await project.find({ jobID: jobID });
+      const created = checkRecorded.length > 0 ? true : false;
+      if(recordedResult.length>0){
+        recordedResult.map((val) => {
+            if (val.allComplete == false) {
+            pending++;
+            } else {
+            completed++;
+            }
+        });
+        res.status(200).json({ 'Pending': pending, 'Completed': completed,'created':created });
+      }
+      else{
+        res.status(200).json({ 'Pending': pending, 'Completed': completed,'created':created });
+      }
     } catch (err) {
         console.log(err);
       res.status(500).json({ msg: "Oops error, We are looking into it." });

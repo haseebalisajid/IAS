@@ -503,7 +503,7 @@ exports.algorithmResult = async (req, res) => {
       const getResult = await result
         .find({ jobID: jobID }, { algorithmResult: true, userID: true })
         .populate("userID", "name email");
-        if(getResult.length>0){
+        if(getResult>=0){
             res.status(200).json(getResult);
         }
         else{
@@ -1182,7 +1182,7 @@ exports.submitMCQ=async(req,res)=>{
         try{
             const checkResult=await result.find({jobID:jobID,userID:req.USER._id});
             if(checkResult[0].mcq == true && checkResult.mcqResult==null){
-                if(totalNumber){
+                if(totalNumber>=0){
                     const updateResult = await result.updateOne(
                         { jobID: jobID, userID: req.USER._id },
                         {
@@ -1191,7 +1191,7 @@ exports.submitMCQ=async(req,res)=>{
                             mcqResult: totalNumber,
                             algorithm:true,
                         },
-                        }
+                         }
                     );
                     res.status(200).json({'msg':'Result Submitted'});
                 }
@@ -1217,7 +1217,7 @@ const checker = (arr) => {
 };
 
 exports.submitAlgorithm = async (req, res) => {
-  const { jobID, resultArray } = req.body;
+  const { jobID, resultCount ,length} = req.body;
   if (jobID) {
     try {
       const checkResult = await result.find({
@@ -1231,21 +1231,20 @@ exports.submitAlgorithm = async (req, res) => {
       const getMcq=await questionnarie.find({jobID:jobID});
       const length=getMcq[0].questions.length;
       const percent = Math.round((checkResult[0].mcqResult / length) * 100);
-      const check=checker(resultArray);
           //checking user valid for this test or not
         if (
             checkResult[0].algorithm == true &&
             checkResult[0].algorithmResult.length == 0
         ) {
             //checking user answers array
-            if(percent>60 && check == true){
-                if (resultArray.length > 0) {
+            if(percent>60 && resultCount == length ){
+                if (resultCount >= 0) {
                     const updateResult = await result.updateOne(
                         { jobID: jobID, userID: req.USER._id },
                         {
                         $set: {
                             algorithm: false,
-                            algorithmResult: resultArray,
+                            algorithmResult: resultCount,
                             projecetAssesment: true,
                         },
                         }

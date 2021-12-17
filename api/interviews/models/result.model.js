@@ -34,8 +34,8 @@ const interviewResult=mongoose.Schema({
         default:null
     },
     algorithmResult:{
-        type:Array,
-        default:[]
+        type:Number,
+        default:null
     },
     projectLink:{
         type:String,

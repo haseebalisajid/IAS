@@ -180,6 +180,14 @@ router.get(
   interviewController.showProjectAssesment
 );
 
+router.get(
+  "/getLiveInterviews",
+  auth,
+  role("applicant"),
+  block,
+  interviewController.showLiveInterviews
+);
+
 router.put(
   "/submitQuestionnarie",
   auth,

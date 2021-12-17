@@ -569,7 +569,10 @@ exports.scheduleRoom=async  (req,res)=>{
     if(userID && jobID){
         if(startTime!=''){
             try{
-                const checkData = await liveInterview.find({userID:userID,jobID:jobID});
+                const checkData = await live.find({
+                  userID: userID,
+                  jobID: jobID,
+                });
                 if(checkData.length==0){
                     const jobDetail = await job.find(
                         { _id: jobID },
@@ -1156,6 +1159,17 @@ exports.acceptFinal=async(req,res)=>{f
 
 //-------------------------------//
 //applicants controllers for interviews
+
+exports.showLiveInterviews=async(req,res)=>{
+    try{
+        const getData = await live.find({ userID: req.USER._id });
+        res.status(200).json(getData);
+    }  
+    catch(err){
+        console.log(err);
+        res.status(500).json({'msg':'internal server error'})
+    }
+}
 
 exports.showLiveRooms=async(req,res)=>{
     try{

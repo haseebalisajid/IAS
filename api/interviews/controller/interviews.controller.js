@@ -569,19 +569,21 @@ exports.scheduleRoom=async  (req,res)=>{
     if(userID && jobID){
         if(startTime!=''){
             try{
+                const userData=await User.find({_id:userID});
                 const checkData = await live.find({
                   userID: userID,
                   jobID: jobID,
                 });
+                const ran=Math.random();
                 if(checkData.length==0){
                     const jobDetail = await job.find(
                         { _id: jobID },
-                        { title: true }
-                    );
+                        { title: true ,company:true}
+                    ).populate('company','name email');
                     let title = jobDetail[0].title;
                     title = title.replace(/ /g, "-");
                     var adminLink;
-                    const roomName = `${title}-Interview`;
+                    const roomName = `${title}-Interview-${ran}`;
                     const response = await fetch(
                         "https://api.daily.co/v1/rooms",
                         {
@@ -643,6 +645,26 @@ exports.scheduleRoom=async  (req,res)=>{
                             }
                         }
                     );
+                    let htmlTemp = `Your live interview is set for ${jobDetail[0].title} with ${userData[0].name}. </strong></p>
+                    <a href=${adminLink}>Link </a>
+                    <br>
+                    <strong>Regards:</strong><br>
+                    <p>IAS.Offical.Team</p>`;
+                    let htmlTemp2 = `Your live interview is set for ${jobDetail[0].title} with ${jobDetail[0].company.name} . </strong></p>
+                    <a href=${data.url}> Link <a/>
+                    <br>
+                    <strong>Regards:</strong><br>
+                    <p>IAS.Offical.Team</p>`;
+                    transporter.sendMail({
+                      to: userData[0].email,
+                      subject: "Live Interview",
+                      html: htmlTemp2,
+                    });
+                    transporter.sendMail({
+                      to: jobDetail[0].company.email,
+                      subject: "Live Interview",
+                      html: htmlTemp,
+                    });
                     res
                       .status(200)
                       .json({

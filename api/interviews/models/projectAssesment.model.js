@@ -18,7 +18,7 @@ const projectSchema = mongoose.Schema({
     type: String,
   },
   fileLink: {
-    type: Buffer
+    type: String
   },
 });
 module.exports = mongoose.model("project", projectSchema);

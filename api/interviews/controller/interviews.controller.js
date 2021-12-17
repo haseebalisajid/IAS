@@ -1281,7 +1281,7 @@ exports.submitAlgorithm = async (req, res) => {
                     {
                     $set: {
                         algorithm: false,
-                        algorithmResult: resultArray,
+                        algorithmResult: resultCount,
                         projecetAssesment: false,
                     },
                     }

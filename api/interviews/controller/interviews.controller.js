@@ -546,7 +546,7 @@ exports.getFinalList=async(req,res)=>{
     const {jobID}=req.params;
     if(jobID){
         try{
-            const getList=await result.find({allComplete:true},{userID:true}).populate('userID','name email');
+            const getList=await result.find({allComplete:true},{userID:true,liveInterview:true}).populate('userID','name email');
             if(getList.length>0){
                 res.status(200).json(getList);
             }
@@ -569,62 +569,87 @@ exports.scheduleRoom=async  (req,res)=>{
     if(userID && jobID){
         if(startTime!=''){
             try{
-                const jobDetail=await job.find({_id:jobID},{title:true});
-                let title=jobDetail[0].title;
-                title = title.replace(/ /g, "-");
-                var adminLink;
-                const roomName=`${title}-Interview`;
-                const response=await fetch("https://api.daily.co/v1/rooms", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${process.env.live_key}`,
-                  },
-                  body: JSON.stringify({
-                    name: roomName,
-                    privacy: "private",
-                    properties: {
-                      nbf: startTime,
-                      enable_screenshare: false,
-                      enable_knocking: true,
-                      enable_chat: true,
-                      start_video_off: true,
-                      start_audio_off: true,
-                    },
-                  }),
-                });
-                const data=await response.json();
+                const checkData = await liveInterview.find({userID:userID,jobID:jobID});
+                if(checkData.length==0){
+                    const jobDetail = await job.find(
+                        { _id: jobID },
+                        { title: true }
+                    );
+                    let title = jobDetail[0].title;
+                    title = title.replace(/ /g, "-");
+                    var adminLink;
+                    const roomName = `${title}-Interview`;
+                    const response = await fetch(
+                        "https://api.daily.co/v1/rooms",
+                        {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${process.env.live_key}`,
+                        },
+                        body: JSON.stringify({
+                            name: roomName,
+                            privacy: "private",
+                            properties: {
+                            nbf: startTime,
+                            enable_screenshare: false,
+                            enable_knocking: true,
+                            enable_chat: true,
+                            start_video_off: true,
+                            start_audio_off: true,
+                            },
+                        }),
+                        }
+                    );
+                    const data = await response.json();
 
-                const response2 = await fetch(
-                  "https://api.daily.co/v1/meeting-tokens",
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${process.env.live_key}`,
-                    },
-                    body: JSON.stringify({
-                      properties: {
-                        room_name: `${data.name}`,
-                        is_owner: true,
-                      },
-                    }),
-                  }
-                );
-                const data2=await response2.json();
-                adminLink = data.url + `?t=${data2.token}`;
+                    const response2 = await fetch(
+                        "https://api.daily.co/v1/meeting-tokens",
+                        {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${process.env.live_key}`,
+                        },
+                        body: JSON.stringify({
+                            properties: {
+                            room_name: `${data.name}`,
+                            is_owner: true,
+                            },
+                        }),
+                        }
+                    );
+                    const data2 = await response2.json();
+                    adminLink = data.url + `?t=${data2.token}`;
 
-                let liveInterview = await new live({
-                    jobID: jobID,
-                    userID: userID,
-                    adminLink: adminLink,
-                    userLink: data.url,
-                    startTime: startTime,
-                    companyID:req.USER._id,
-                    roomName:roomName
-                });
-                let liveInter = await liveInterview.save();
-                res.status(200).json(liveInter);
+                    let liveInterview = await new live({
+                        jobID: jobID,
+                        userID: userID,
+                        adminLink: adminLink,
+                        userLink: data.url,
+                        startTime: startTime,
+                        companyID: req.USER._id,
+                        roomName: roomName,
+                    });
+                    let liveInter = await liveInterview.save();
+                    const updateResult=await result.updateOne(
+                        {jobID:jobID,userID:userID},
+                        {
+                            $set:{
+                                liveInterview:true
+                            }
+                        }
+                    );
+                    res
+                      .status(200)
+                      .json({
+                        msg: "live interview setup",
+                        response: liveInter,
+                      });
+                }
+                else{
+                    res.status(403).json({'msg':'Already created'});
+                }
             }
             catch(err){
                 console.log(err);
@@ -1153,7 +1178,13 @@ exports.getUserStates = async (req, res) => {
     try {
       const Result = await result.find(
         { jobID: jobID, userID: userID },
-        { recorded: true, mcq: true, algorithm: true, projectAssesment: true }
+        {
+          recorded: true,
+          mcq: true,
+          algorithm: true,
+          projectAssesment: true,
+          allComplete: true,
+        }
       );
       res.status(200).json(Result);
     } catch (err) {

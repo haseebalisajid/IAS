@@ -45,6 +45,10 @@ const interviewResult=mongoose.Schema({
         type:String,
         default:''
     },
+    liveInterview:{
+        type:Boolean,
+        default:false
+    },
     allComplete:{
         type:Boolean,
         default:false

@@ -1234,7 +1234,7 @@ exports.submitAlgorithm = async (req, res) => {
           //checking user valid for this test or not
         if (
             checkResult[0].algorithm == true &&
-            checkResult[0].algorithmResult.length == 0
+            checkResult[0].algorithmResult == null
         ) {
             //checking user answers array
             if(percent>60 && resultCount == length ){

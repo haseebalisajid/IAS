@@ -904,7 +904,7 @@ exports.setResponse=async(req,res)=>{
 }
 
 
-exports.getRecordedCount=async(req,res)=>{
+exports.getRecordedCount=async(req,res)=>{  
     const {jobID}=req.params;
     if(jobID){
         try{
@@ -917,7 +917,7 @@ exports.getRecordedCount=async(req,res)=>{
                 recordedResult.map((val) => {
                   if (val.recorded == true && val.recordedResult.length == 0) {
                     pending++;
-                  } else {
+                  } else if(val.recorded == false && val.recordedResult.length >0) {
                     completed++;
                   }
                 });
@@ -953,7 +953,7 @@ exports.getMcqCount = async (req, res) => {
         recordedResult.map((val) => {
             if (val.mcq == true && val.mcqResult == null) {
                 pending++;
-            } else {
+            } else if(val.mcq == false && val.mcqResult != null) {
                 completed++;
             }
         });
@@ -982,9 +982,9 @@ exports.getAlgoCount = async (req, res) => {
       const created = checkRecorded.length > 0 ? true : false;
       if(recordedResult.length>0){
         recordedResult.map((val) => {
-        if (val.algorithm == true && val.algorithmResult.length == 0) {
+        if (val.algorithm == true && val.algorithmResult == null) {
             pending++;
-        } else {
+        } else if(val.algorithm == false && val.algorithmResult != null){
             completed++;
         }
         });

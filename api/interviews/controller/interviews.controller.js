@@ -557,7 +557,7 @@ exports.getFinalList=async(req,res)=>{
     const {jobID}=req.params;
     if(jobID){
         try{
-            const getList=await result.find({allComplete:true},{userID:true,liveInterview:true}).populate('userID','name email');
+            const getList=await result.find({allComplete:true},{userID:true,liveInterview:true}).populate('userID','name email').populate('jobID','title');
             if(getList.length>0){
                 res.status(200).json(getList);
             }
@@ -1207,7 +1207,7 @@ exports.acceptFinal=async(req,res)=>{f
 
 exports.showLiveInterviews=async(req,res)=>{
     try{
-        const getData = await live.find({ userID: req.USER._id });
+        const getData = await live.find({ userID: req.USER._id },{adminLink:false}).populate('jobID','title').populate('companyID','name email');
         res.status(200).json(getData);
     }  
     catch(err){

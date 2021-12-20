@@ -557,13 +557,9 @@ exports.getFinalList=async(req,res)=>{
     const {jobID}=req.params;
     if(jobID){
         try{
-            const getList=await result.find({allComplete:true},{userID:true,liveInterview:true}).populate('userID','name email').populate('jobID','title');
-            if(getList.length>0){
+            const getList=await result.find({jobID:jobID,allComplete:true},{userID:true,liveInterview:true}).populate('userID','name email').populate('jobID','title');
                 res.status(200).json(getList);
-            }
-            else{
-                res.status(404).json({'msg':"No Data found"});
-            }
+
         }
         catch(err){
             res.status(500).json({'msg':'Oops Error, we are looking into it.'})

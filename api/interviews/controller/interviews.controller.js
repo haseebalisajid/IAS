@@ -468,7 +468,7 @@ exports.recordedResult=async(req,res)=>{
                 res.status(200).json(getResult);
             }  
             else{
-                res.status(200).json([]);
+                res.status(200).json(arr);
             }
         }
         catch(err){
@@ -514,7 +514,7 @@ exports.algorithmResult = async (req, res) => {
       const getResult = await result
         .find({ jobID: jobID }, { algorithmResult: true, userID: true })
         .populate("userID", "name email");
-        if(getResult>=0){
+        if(getResult.length>0){
             res.status(200).json(getResult);
         }
         else{

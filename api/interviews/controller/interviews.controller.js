@@ -1194,6 +1194,22 @@ exports.acceptFinal=async(req,res)=>{f
     }
 }
 
+exports.showFinal=async(req,res)=>{
+    const {jobID}=req.params;
+    if(jobID){
+        try{
+            const final=await job.find({_id:jobID},{title:true,finalSelected:true});
+            res.status(200).json(final);
+        }
+        catch(err){
+            console.log(err);
+            res.status(500).json({'msg':'Oops Error. We are looking into it.'})
+        }
+    }
+    else{
+        res.status(400).json({'msg':'jobID is missing'});
+    }
+}
 //-------------------------------//
 //applicants controllers for interviews
 

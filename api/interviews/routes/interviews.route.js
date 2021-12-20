@@ -128,6 +128,8 @@ router.put(
   interviewController.acceptFinal
 );
 
+router.get('/getFinalCandidates/:jobID',auth,role('company'),block,interviewController.showFinal);
+
 //applicant side routes
 
 router.get(

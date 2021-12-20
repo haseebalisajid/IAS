@@ -72,7 +72,7 @@ router.get(
 router.post('/scheduleLiveInterview',auth,role('company'),block,interviewController.scheduleRoom);
 
 router.get(
-  "/getScheduledRooms",
+  "/getScheduledRooms/:jobID",
   auth,
   role("company"),
   block,

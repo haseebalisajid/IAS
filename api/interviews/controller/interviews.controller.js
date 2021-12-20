@@ -716,11 +716,7 @@ exports.showScheduledRooms=async(req,res)=>{
             const data = await live
             .find({ jobID: jobID }, { userLink: false })
             .populate("userID", "name").populate('jobID','title');
-            if (data.length > 0) {
-            res.status(200).json(data);
-            } else {
-            res.status(404).json({ msg: "No data found" });
-            }
+                res.status(200).json(data);
         } catch (err) {
             res.status(500).json({ msg: "Oops Error,, we are looking into it." });
         }

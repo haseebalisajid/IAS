@@ -460,6 +460,7 @@ exports.projectAssesmentRemarks=async(req,res)=>{
 
 exports.recordedResult=async(req,res)=>{
     const { jobID } = req.params;
+    let arr=[]
     if(jobID){
         try{
             const getResult=await result.find({jobID:jobID},{recordedResult:true,userID:true}).populate('userID','name email');
@@ -467,7 +468,7 @@ exports.recordedResult=async(req,res)=>{
                 res.status(200).json(getResult);
             }  
             else{
-                res.status(403).json({ msg: "No report found" });
+                res.status(200).json([]);
             }
         }
         catch(err){
@@ -485,6 +486,7 @@ exports.questionnarieResult = async (req, res) => {
   const { jobID } = req.params;
   if (jobID) {
     try {
+        let arr=[]
       const getResult = await result
         .find({ jobID: jobID }, { mcqResult: true, userID: true })
         .populate("userID", "name email");
@@ -492,7 +494,7 @@ exports.questionnarieResult = async (req, res) => {
             res.status(200).json(getResult);
         }
         else{
-            res.status(403).json({ msg: "No report found" });
+            res.status(200).json(arr);
         }
     } catch (err) {
       console.log(err);
@@ -508,6 +510,7 @@ exports.algorithmResult = async (req, res) => {
   const { jobID } = req.params;
   if (jobID) {
     try {
+        let arr=[]
       const getResult = await result
         .find({ jobID: jobID }, { algorithmResult: true, userID: true })
         .populate("userID", "name email");
@@ -515,7 +518,7 @@ exports.algorithmResult = async (req, res) => {
             res.status(200).json(getResult);
         }
         else{
-            res.status(403).json({ msg: "No report found" });
+            res.status(200).json(arr);
         }
 
     } catch (err) {
@@ -539,7 +542,7 @@ exports.projectResult = async (req, res) => {
             res.status(200).json(getResult);  
         }
         else{
-            res.status(403).json({'msg':'No report found'});
+            res.status(200).json(arr);
         }
     } catch (err) {
       console.log(err);
@@ -1013,10 +1016,10 @@ exports.getProjectCount = async (req, res) => {
       const created = checkRecorded.length > 0 ? true : false;
       if(recordedResult.length>0){
         recordedResult.map((val) => {
-            if (val.allComplete == false) {
-            pending++;
-            } else {
-            completed++;
+            if (val.projectAssesment == true && val.projectLink=='') {
+                pending++;
+            } else if(val.projectAssesment == false && val.projectLink !='') {
+                completed++;
             }
         });
         res.status(200).json({ 'Pending': pending, 'Completed': completed,'created':created });

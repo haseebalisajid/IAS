@@ -388,6 +388,14 @@ exports.startInterviews=async(req,res)=>{
                             }
                         }
                     )
+                    let updateJob=await job.updateOne(
+                        {_id:jobID},
+                        {
+                            $set:{
+                                interview:true
+                            }
+                        }
+                    )
                     return res.status(200).json({'msg':"Emails sent to all selected applicants",'response':`Interview started for the ${getSelected[0].title} job`})
                 }
                 else{
@@ -574,7 +582,7 @@ exports.scheduleRoom=async  (req,res)=>{
                   userID: userID,
                   jobID: jobID,
                 });
-                const ran=Math.random();
+                const ran=Math.floor(Math.random()*10);
                 if(checkData.length==0){
                     const jobDetail = await job.find(
                         { _id: jobID },
@@ -582,8 +590,10 @@ exports.scheduleRoom=async  (req,res)=>{
                     ).populate('company','name email');
                     let title = jobDetail[0].title;
                     title = title.replace(/ /g, "-");
+
                     var adminLink;
-                    const roomName = `${title}-Interview-${ran}`;
+                    const roomName = `${title}-live-${ran}`;
+
                     const response = await fetch(
                         "https://api.daily.co/v1/rooms",
                         {
@@ -608,6 +618,7 @@ exports.scheduleRoom=async  (req,res)=>{
                     );
                     const data = await response.json();
 
+
                     const response2 = await fetch(
                         "https://api.daily.co/v1/meeting-tokens",
                         {
@@ -625,6 +636,7 @@ exports.scheduleRoom=async  (req,res)=>{
                         }
                     );
                     const data2 = await response2.json();
+
                     adminLink = data.url + `?t=${data2.token}`;
 
                     let liveInterview = await new live({
@@ -645,12 +657,20 @@ exports.scheduleRoom=async  (req,res)=>{
                             }
                         }
                     );
-                    let htmlTemp = `Your live interview is set for ${jobDetail[0].title} with ${userData[0].name}. </strong></p>
+                    var date=new Date(startTime*1000);
+                    let dateTime=date.getDate()+
+                        "/"+(date.getMonth()+1)+
+                        "/"+date.getFullYear()+
+                        " "+date.getHours()+
+                        ":"+date.getMinutes()+
+                        ":"+date.getSeconds();
+                    
+                    let htmlTemp = `Your live interview is set for ${jobDetail[0].title} with ${userData[0].name} on ${dateTime} </strong></p>
                     <a href=${adminLink}>Link </a>
                     <br>
                     <strong>Regards:</strong><br>
                     <p>IAS.Offical.Team</p>`;
-                    let htmlTemp2 = `Your live interview is set for ${jobDetail[0].title} with ${jobDetail[0].company.name} . </strong></p>
+                    let htmlTemp2 = `Your live interview is set for ${jobDetail[0].title} with ${jobDetail[0].company.name} on ${dateTime}  </strong></p>
                     <a href=${data.url}> Link <a/>
                     <br>
                     <strong>Regards:</strong><br>
